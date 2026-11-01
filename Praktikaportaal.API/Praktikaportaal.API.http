@@ -1,0 +1,6 @@
+@Praktikaportaal.API_HostAddress = http://localhost:5117
+
+GET {{Praktikaportaal.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
