@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Praktikaportaal.Worker-07be2be6-543b-4bcf-bdab-f03696fe010b</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Praktikaportaal.Core\Praktikaportaal.Core.csproj" />
+    <ProjectReference Include="..\Praktikaportaal.Infrastructure\Praktikaportaal.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Praktikaportaal.API/Praktikaportaal.API.csproj" />
+  <Project Path="Praktikaportaal.Core/Praktikaportaal.Core.csproj" />
+  <Project Path="Praktikaportaal.Infrastructure/Praktikaportaal.Infrastructure.csproj" />
+  <Project Path="Praktikaportaal.Tests/Praktikaportaal.Tests.csproj" />
+  <Project Path="Praktikaportaal.Web/Praktikaportaal.Web.csproj" />
+  <Project Path="Praktikaportaal.Worker/Praktikaportaal.Worker.csproj" />
+</Solution>
