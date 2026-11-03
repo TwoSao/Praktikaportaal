@@ -16,9 +16,7 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
             .HasMaxLength(5000);
 
         builder.Property(a => a.Status)
-            .IsRequired()
-            .HasConversion<string>()
-            .HasMaxLength(20);
+            .IsRequired();
 
         builder.Property(a => a.AppliedAt)
             .IsRequired();
