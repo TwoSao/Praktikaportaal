@@ -59,3 +59,4 @@ public class AuthResultDto
     public static AuthResultDto Failed(string error) =>
         new() { Success = false, Error = error };
 }
+

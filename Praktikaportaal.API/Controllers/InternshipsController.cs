@@ -86,3 +86,4 @@ public class InternshipsController : ControllerBase
         return updated ? NoContent() : NotFound(new { error = "Internship not found or does not belong to your company." });
     }
 }
+

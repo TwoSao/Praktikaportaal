@@ -144,3 +144,4 @@ public class AuthServiceTests
         Assert.Equal(companyProfile.Id, result.User?.ProfileId);
     }
 }
+

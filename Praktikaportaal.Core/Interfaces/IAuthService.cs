@@ -9,3 +9,4 @@ public interface IAuthService
     Task<AuthResultDto> LoginAsync(LoginDto dto, CancellationToken ct = default);
     Task<UserDto?> GetUserByIdAsync(Guid userId, CancellationToken ct = default);
 }
+

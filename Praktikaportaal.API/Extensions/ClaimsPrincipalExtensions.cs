@@ -21,3 +21,4 @@ public static class ClaimsPrincipalExtensions
         return principal.FindFirstValue(ClaimTypes.Role);
     }
 }
+

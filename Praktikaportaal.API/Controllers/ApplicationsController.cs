@@ -98,3 +98,4 @@ public class ApplicationsController : ControllerBase
         return withdrawn ? NoContent() : BadRequest(new { error = "Unable to withdraw application." });
     }
 }
+

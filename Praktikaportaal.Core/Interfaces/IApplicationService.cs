@@ -11,3 +11,4 @@ public interface IApplicationService
     Task<bool> UpdateApplicationStatusAsync(Guid applicationId, Guid companyProfileId, ApplicationStatus newStatus, CancellationToken ct = default);
     Task<bool> WithdrawApplicationAsync(Guid applicationId, Guid studentProfileId, CancellationToken ct = default);
 }
+

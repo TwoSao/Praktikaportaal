@@ -77,3 +77,4 @@ public class AuthController : ControllerBase
         return user != null ? Ok(user) : NotFound();
     }
 }
+
