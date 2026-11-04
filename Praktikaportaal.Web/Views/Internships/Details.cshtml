@@ -1,0 +1,109 @@
+@model Praktikaportaal.Web.Models.InternshipItemViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="text-decoration-none text-muted">&larr; Tagasi kõigi pakkumiste juurde</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h2 class="fw-bold mb-1">@Model.Title</h2>
+                        <h5 class="text-muted fw-semibold">@Model.CompanyName</h5>
+                    </div>
+                    <div>
+                        @if (Model.IsRemote)
+                        {
+                            <span class="badge bg-info text-dark fs-6">🏠 Kaugtöö võimalik</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-3 py-2 border-top border-bottom my-3 text-muted small">
+                    <div>📍 <strong>Asukoht:</strong> @(Model.Location ?? "Kokkuleppel")</div>
+                    @if (Model.StartDate.HasValue)
+                    {
+                        <div>📅 <strong>Algus:</strong> @Model.StartDate.Value.ToString("dd.MM.yyyy")</div>
+                    }
+                    @if (Model.ApplicationDeadline.HasValue)
+                    {
+                        <div>⏳ <strong>Kandideerimise tähtaeg:</strong> @Model.ApplicationDeadline.Value.ToString("dd.MM.yyyy")</div>
+                    }
+                </div>
+
+                <h5 class="fw-bold mt-4 mb-2">Praktika kirjeldus</h5>
+                <div class="text-secondary" style="white-space: pre-line;">@Model.Description</div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Requirements))
+                {
+                    <h5 class="fw-bold mt-4 mb-2">Nõuded ja eeldused kandidaadile</h5>
+                    <div class="text-secondary" style="white-space: pre-line;">@Model.Requirements</div>
+                }
+
+                @if (Model.Skills != null && Model.Skills.Count > 0)
+                {
+                    <h5 class="fw-bold mt-4 mb-2">Seotud tehnoloogiad ja oskused</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var s in Model.Skills)
+                        {
+                            <span class="badge bg-primary fs-6">@s</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 20px;">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3">Kandideerimine</h5>
+
+                @if (User.IsInRole("Student"))
+                {
+                    <p class="text-muted small">Oled sisse logitud õppurina. Esita oma motivatsioonikiri ja kandideeri praktikakohale.</p>
+                    <a asp-action="Apply" asp-route-id="@Model.Id" class="btn btn-primary w-100 py-2 fw-semibold">
+                        Kandideeri praktikale &rarr;
+                    </a>
+                }
+                else if (User.IsInRole("Company"))
+                {
+                    <div class="alert alert-info small mb-0">
+                        Oled sisse logitud ettevõttena. Praktikakohtadele saavad kandideerida ainult õppurid.
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">Praktikale kandideerimiseks pead olema sisse logitud õppuri kontoga.</p>
+                    <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Context.Request.Path" class="btn btn-primary w-100 mb-2">
+                        Logi sisse kandideerimiseks
+                    </a>
+                    <a asp-controller="Account" asp-action="RegisterStudent" class="btn btn-outline-secondary w-100 btn-sm">
+                        Loo õppuri konto
+                    </a>
+                }
+
+                <hr class="my-4" />
+
+                <h6 class="fw-bold mb-2">Ettevõtte info</h6>
+                <p class="mb-1 fw-semibold">@Model.CompanyName</p>
+                @if (!string.IsNullOrEmpty(Model.CompanyLocation))
+                {
+                    <p class="text-muted small mb-1">📍 @Model.CompanyLocation</p>
+                }
+                @if (!string.IsNullOrEmpty(Model.CompanyWebsite))
+                {
+                    <p class="small mb-0">
+                        🔗 <a href="@Model.CompanyWebsite" target="_blank" rel="noopener noreferrer">@Model.CompanyWebsite</a>
+                    </p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
