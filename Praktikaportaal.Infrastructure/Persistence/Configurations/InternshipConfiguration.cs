@@ -25,6 +25,15 @@ public class InternshipConfiguration : IEntityTypeConfiguration<Internship>
         builder.Property(i => i.Location)
             .HasMaxLength(150);
 
+        builder.Property(i => i.Field)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        // Search/filter indexes (field + location filters, createdAfter for the Worker).
+        builder.HasIndex(i => i.Field);
+        builder.HasIndex(i => i.Location);
+        builder.HasIndex(i => i.CreatedAt);
+
         builder.Property(i => i.Status)
             .IsRequired()
             .HasConversion<string>()
