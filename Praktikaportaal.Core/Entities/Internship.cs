@@ -22,6 +22,9 @@ public class Internship : BaseEntity
     /// <summary>Skill or qualification requirements. Max 3000 chars.</summary>
     public string? Requirements { get; set; }
 
+    /// <summary>Professional field / area of the internship (e.g. "IT", "Marketing"). Max 100 chars. Used for search.</summary>
+    public string Field { get; set; } = string.Empty;
+
     /// <summary>City / region where the internship takes place. Max 150 chars.</summary>
     public string? Location { get; set; }
 

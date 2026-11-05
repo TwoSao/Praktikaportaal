@@ -65,6 +65,7 @@ public class ApplicationServiceTests
             CompanyProfile = company,
             Title = ".NET Junior Developer Practice",
             Description = "Join our software development team.",
+            Field = "IT",
             Status = internshipStatus,
             ApplicationDeadline = deadline
         };
@@ -96,7 +97,7 @@ public class ApplicationServiceTests
         Assert.True(success);
         Assert.Null(error);
         Assert.NotNull(appDto);
-        Assert.Equal(ApplicationStatus.Pending, appDto.Status);
+        Assert.Equal(ApplicationStatus.Submitted, appDto.Status);
         Assert.Equal("Mari Tamm", appDto.StudentName);
 
         var count = await context.Applications.CountAsync();
@@ -153,7 +154,7 @@ public class ApplicationServiceTests
 
         Assert.True(second.Success);
         Assert.NotNull(second.Application);
-        Assert.Equal(ApplicationStatus.Pending, second.Application.Status);
+        Assert.Equal(ApplicationStatus.Submitted, second.Application.Status);
     }
 
     [Fact]

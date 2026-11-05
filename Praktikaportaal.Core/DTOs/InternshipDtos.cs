@@ -6,6 +6,7 @@ public class CreateInternshipDto
 {
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Field { get; set; } = string.Empty;
     public string? Requirements { get; set; }
     public string? Location { get; set; }
     public DateTime? StartDate { get; set; }
@@ -24,6 +25,7 @@ public class InternshipDto
     public string? CompanyWebsite { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Field { get; set; } = string.Empty;
     public string? Requirements { get; set; }
     public string? Location { get; set; }
     public DateTime? StartDate { get; set; }

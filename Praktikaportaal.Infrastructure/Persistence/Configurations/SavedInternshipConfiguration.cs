@@ -27,5 +27,8 @@ public class SavedInternshipConfiguration : IEntityTypeConfiguration<SavedIntern
             .WithMany(i => i.SavedByStudents)
             .HasForeignKey(si => si.InternshipId)
             .OnDelete(DeleteBehavior.Cascade); // removing internship removes bookmarks
+
+        // Hide join rows whose principal is soft-deleted (matches the principals' query filters).
+        builder.HasQueryFilter(x => !x.Internship.IsDeleted && !x.StudentProfile.IsDeleted);
     }
 }

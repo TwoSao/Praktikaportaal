@@ -16,7 +16,9 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
             .HasMaxLength(5000);
 
         builder.Property(a => a.Status)
-            .IsRequired();
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
 
         builder.Property(a => a.AppliedAt)
             .IsRequired();
@@ -37,11 +39,11 @@ public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
 
         // Filtered unique index: a student may not have more than one
         // non-Withdrawn application for the same internship at a time.
-        // ApplicationStatus.Withdrawn == 3 — excluded from the uniqueness constraint,
+        // Withdrawn applications are excluded from the uniqueness constraint,
         // so a student may reapply after withdrawing.
         builder.HasIndex(a => new { a.StudentProfileId, a.InternshipId })
             .IsUnique()
-            .HasFilter($"[Status] <> {(int)ApplicationStatus.Withdrawn}")
+            .HasFilter($"[Status] <> '{nameof(ApplicationStatus.Withdrawn)}'")
             .HasDatabaseName("IX_Applications_Student_Internship_Active");
 
         // Soft-delete global query filter.
