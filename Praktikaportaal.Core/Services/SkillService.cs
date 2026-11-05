@@ -1,49 +1,35 @@
-using Microsoft.EntityFrameworkCore;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Interfaces;
-using Praktikaportaal.Infrastructure.Persistence;
+using Praktikaportaal.Core.Interfaces.Repositories;
 
-namespace Praktikaportaal.Infrastructure.Services;
+namespace Praktikaportaal.Core.Services;
 
 public class SkillService : ISkillService
 {
-    private readonly PraktikaportaalDbContext _context;
+    private readonly ISkillRepository _skills;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public SkillService(PraktikaportaalDbContext context)
+    public SkillService(ISkillRepository skills, IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _skills = skills;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IReadOnlyList<SkillDto>> GetAllSkillsAsync(CancellationToken ct = default)
     {
-        return await _context.Skills
-            .OrderBy(s => s.Name)
-            .Select(s => new SkillDto
-            {
-                Id = s.Id,
-                Name = s.Name,
-                Description = s.Description
-            })
-            .ToListAsync(ct);
+        var skills = await _skills.GetAllAsync(ct);
+        return skills.Select(MapToDto).ToList();
     }
 
     public async Task<SkillDto> CreateSkillAsync(CreateSkillDto dto, CancellationToken ct = default)
     {
         string normalizedName = dto.Name.Trim();
 
-        var existing = await _context.Skills
-            .FirstOrDefaultAsync(s => s.Name.ToLower() == normalizedName.ToLower(), ct);
-
+        // Skill names are unique (case-insensitive): return the existing one instead of duplicating.
+        var existing = await _skills.GetByNameAsync(normalizedName, ct);
         if (existing != null)
-        {
-            return new SkillDto
-            {
-                Id = existing.Id,
-                Name = existing.Name,
-                Description = existing.Description
-            };
-        }
+            return MapToDto(existing);
 
         var skill = new Skill
         {
@@ -51,14 +37,16 @@ public class SkillService : ISkillService
             Description = dto.Description?.Trim()
         };
 
-        await _context.Skills.AddAsync(skill, ct);
-        await _context.SaveChangesAsync(ct);
+        await _skills.AddAsync(skill, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
-        return new SkillDto
-        {
-            Id = skill.Id,
-            Name = skill.Name,
-            Description = skill.Description
-        };
+        return MapToDto(skill);
     }
+
+    private static SkillDto MapToDto(Skill s) => new()
+    {
+        Id = s.Id,
+        Name = s.Name,
+        Description = s.Description
+    };
 }

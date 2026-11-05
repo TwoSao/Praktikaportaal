@@ -6,6 +6,8 @@ using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Infrastructure.Persistence;
+using Praktikaportaal.Core.Services;
+using Praktikaportaal.Infrastructure.Persistence.Repositories;
 using Praktikaportaal.Infrastructure.Services;
 using Xunit;
 
@@ -30,7 +32,7 @@ public class AuthServiceTests
         var jwtMock = new Mock<IJwtTokenService>();
         jwtMock.Setup(j => j.GenerateToken(It.IsAny<User>(), It.IsAny<Guid?>())).Returns("mock_token");
 
-        var authService = new AuthService(context, passwordHasher, jwtMock.Object);
+        var authService = new AuthService(new UserRepository(context), new UnitOfWork(context), passwordHasher, jwtMock.Object);
 
         var dto = new RegisterStudentDto
         {
@@ -68,7 +70,7 @@ public class AuthServiceTests
         var passwordHasher = new PasswordHasher();
         var jwtMock = new Mock<IJwtTokenService>();
 
-        var authService = new AuthService(context, passwordHasher, jwtMock.Object);
+        var authService = new AuthService(new UserRepository(context), new UnitOfWork(context), passwordHasher, jwtMock.Object);
 
         var existingUser = new User
         {
@@ -106,7 +108,7 @@ public class AuthServiceTests
         var jwtMock = new Mock<IJwtTokenService>();
         jwtMock.Setup(j => j.GenerateToken(It.IsAny<User>(), It.IsAny<Guid?>())).Returns("valid_jwt_token");
 
-        var authService = new AuthService(context, passwordHasher, jwtMock.Object);
+        var authService = new AuthService(new UserRepository(context), new UnitOfWork(context), passwordHasher, jwtMock.Object);
 
         var user = new User
         {

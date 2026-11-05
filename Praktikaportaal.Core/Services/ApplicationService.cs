@@ -1,19 +1,28 @@
-using Microsoft.EntityFrameworkCore;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Interfaces;
-using Praktikaportaal.Infrastructure.Persistence;
+using Praktikaportaal.Core.Interfaces.Repositories;
 
-namespace Praktikaportaal.Infrastructure.Services;
+namespace Praktikaportaal.Core.Services;
 
 public class ApplicationService : IApplicationService
 {
-    private readonly PraktikaportaalDbContext _context;
+    private readonly IApplicationRepository _applications;
+    private readonly IInternshipRepository _internships;
+    private readonly IStudentProfileRepository _students;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public ApplicationService(PraktikaportaalDbContext context)
+    public ApplicationService(
+        IApplicationRepository applications,
+        IInternshipRepository internships,
+        IStudentProfileRepository students,
+        IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _applications = applications;
+        _internships = internships;
+        _students = students;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<(bool Success, string? Error, ApplicationDto? Application)> ApplyAsync(
@@ -21,9 +30,7 @@ public class ApplicationService : IApplicationService
         CreateApplicationDto dto,
         CancellationToken ct = default)
     {
-        var internship = await _context.Internships
-            .Include(i => i.CompanyProfile)
-            .FirstOrDefaultAsync(i => i.Id == dto.InternshipId, ct);
+        var internship = await _internships.GetByIdAsync(dto.InternshipId, ct);
 
         if (internship == null)
             return (false, "Internship listing not found.", null);
@@ -34,65 +41,36 @@ public class ApplicationService : IApplicationService
         if (internship.ApplicationDeadline.HasValue && internship.ApplicationDeadline.Value < DateTime.UtcNow)
             return (false, "The application deadline for this internship has passed.", null);
 
-        // Business rule: Student cannot have more than one active (non-withdrawn) application for the same internship.
-        bool hasActiveApplication = await _context.Applications
-            .AnyAsync(a => a.StudentProfileId == studentProfileId &&
-                           a.InternshipId == dto.InternshipId &&
-                           a.Status != ApplicationStatus.Withdrawn, ct);
-
-        if (hasActiveApplication)
+        // Business rule: one active (non-withdrawn) application per student per internship.
+        if (await _applications.HasActiveApplicationAsync(studentProfileId, dto.InternshipId, ct))
             return (false, "You already have an active application for this internship.", null);
+
+        var studentProfile = await _students.GetByIdAsync(studentProfileId, ct);
+        if (studentProfile == null)
+            return (false, "Student profile not found.", null);
 
         var application = new Application
         {
             StudentProfileId = studentProfileId,
-            InternshipId = dto.InternshipId,
+            StudentProfile = studentProfile,
+            InternshipId = internship.Id,
+            Internship = internship,
             CoverLetter = dto.CoverLetter?.Trim(),
             Status = ApplicationStatus.Submitted,
             AppliedAt = DateTime.UtcNow
         };
 
-        await _context.Applications.AddAsync(application, ct);
-        await _context.SaveChangesAsync(ct);
+        await _applications.AddAsync(application, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
-        var studentProfile = await _context.StudentProfiles
-            .Include(sp => sp.User)
-            .FirstOrDefaultAsync(sp => sp.Id == studentProfileId, ct);
-
-        var applicationDto = new ApplicationDto
-        {
-            Id = application.Id,
-            InternshipId = internship.Id,
-            InternshipTitle = internship.Title,
-            CompanyName = internship.CompanyProfile.CompanyName,
-            StudentProfileId = studentProfileId,
-            StudentName = $"{studentProfile?.User.FirstName} {studentProfile?.User.LastName}".Trim(),
-            StudentEmail = studentProfile?.User.Email ?? string.Empty,
-            StudentPhoneNumber = studentProfile?.PhoneNumber,
-            SchoolName = studentProfile?.SchoolName,
-            StudyProgram = studentProfile?.StudyProgram,
-            Course = studentProfile?.Course ?? 0,
-            CoverLetter = application.CoverLetter,
-            Status = application.Status,
-            AppliedAt = application.AppliedAt
-        };
-
-        return (true, null, applicationDto);
+        return (true, null, MapToDto(application));
     }
 
     public async Task<IReadOnlyList<ApplicationDto>> GetStudentApplicationsAsync(
         Guid studentProfileId,
         CancellationToken ct = default)
     {
-        var list = await _context.Applications
-            .Include(a => a.Internship)
-                .ThenInclude(i => i.CompanyProfile)
-            .Include(a => a.StudentProfile)
-                .ThenInclude(sp => sp.User)
-            .Where(a => a.StudentProfileId == studentProfileId)
-            .OrderByDescending(a => a.AppliedAt)
-            .ToListAsync(ct);
-
+        var list = await _applications.GetByStudentAsync(studentProfileId, ct);
         return list.Select(MapToDto).ToList();
     }
 
@@ -101,22 +79,10 @@ public class ApplicationService : IApplicationService
         Guid companyProfileId,
         CancellationToken ct = default)
     {
-        // Verify company owns this internship
-        bool ownsInternship = await _context.Internships
-            .AnyAsync(i => i.Id == internshipId && i.CompanyProfileId == companyProfileId, ct);
-
-        if (!ownsInternship)
+        if (!await _internships.IsOwnedByCompanyAsync(internshipId, companyProfileId, ct))
             return [];
 
-        var list = await _context.Applications
-            .Include(a => a.Internship)
-                .ThenInclude(i => i.CompanyProfile)
-            .Include(a => a.StudentProfile)
-                .ThenInclude(sp => sp.User)
-            .Where(a => a.InternshipId == internshipId)
-            .OrderByDescending(a => a.AppliedAt)
-            .ToListAsync(ct);
-
+        var list = await _applications.GetByInternshipAsync(internshipId, ct);
         return list.Select(MapToDto).ToList();
     }
 
@@ -126,19 +92,17 @@ public class ApplicationService : IApplicationService
         ApplicationStatus newStatus,
         CancellationToken ct = default)
     {
-        var application = await _context.Applications
-            .Include(a => a.Internship)
-            .FirstOrDefaultAsync(a => a.Id == applicationId, ct);
+        var application = await _applications.GetByIdAsync(applicationId, ct);
 
         if (application == null)
             return false;
 
-        // Verify company owns the internship
+        // Only the company that owns the internship may change the status.
         if (application.Internship.CompanyProfileId != companyProfileId)
             return false;
 
         application.Status = newStatus;
-        await _context.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
@@ -147,14 +111,13 @@ public class ApplicationService : IApplicationService
         Guid studentProfileId,
         CancellationToken ct = default)
     {
-        var application = await _context.Applications
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.StudentProfileId == studentProfileId, ct);
+        var application = await _applications.GetByIdAsync(applicationId, ct);
 
-        if (application == null)
+        if (application == null || application.StudentProfileId != studentProfileId)
             return false;
 
         application.Status = ApplicationStatus.Withdrawn;
-        await _context.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 
