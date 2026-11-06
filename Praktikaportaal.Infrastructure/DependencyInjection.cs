@@ -6,6 +6,7 @@ using Praktikaportaal.Core.Interfaces.Repositories;
 using Praktikaportaal.Core.Services;
 using Praktikaportaal.Infrastructure.Persistence;
 using Praktikaportaal.Infrastructure.Persistence.Repositories;
+using Praktikaportaal.Infrastructure.Persistence.Seed;
 using Praktikaportaal.Infrastructure.Services;
 
 namespace Praktikaportaal.Infrastructure;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ISkillRepository, SkillRepository>();
 
         // Infrastructure services
+        services.AddScoped<DbSeeder>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 

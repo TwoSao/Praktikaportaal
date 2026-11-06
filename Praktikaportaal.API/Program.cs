@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Praktikaportaal.Infrastructure;
+using Praktikaportaal.Infrastructure.Persistence.Seed;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,6 +58,12 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// ── Database migrations + demo seed data (enabled in Development) ─────────
+if (app.Configuration.GetValue<bool>("Database:MigrateAndSeedOnStartup"))
+{
+    await app.Services.InitializeDatabaseAsync();
+}
+
 // ── Middleware pipeline ────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
@@ -72,4 +79,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
