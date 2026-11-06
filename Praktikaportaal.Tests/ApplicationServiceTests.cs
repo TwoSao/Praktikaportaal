@@ -3,7 +3,8 @@ using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Infrastructure.Persistence;
-using Praktikaportaal.Infrastructure.Services;
+using Praktikaportaal.Core.Services;
+using Praktikaportaal.Infrastructure.Persistence.Repositories;
 using Xunit;
 
 namespace Praktikaportaal.Tests;
@@ -18,6 +19,12 @@ public class ApplicationServiceTests
 
         return new PraktikaportaalDbContext(options);
     }
+
+    private static ApplicationService CreateService(PraktikaportaalDbContext context) => new(
+        new ApplicationRepository(context),
+        new InternshipRepository(context),
+        new StudentProfileRepository(context),
+        new UnitOfWork(context));
 
     private async Task<(User studentUser, StudentProfile student, CompanyProfile company, Internship internship)> SeedDataAsync(
         PraktikaportaalDbContext context,
@@ -84,7 +91,7 @@ public class ApplicationServiceTests
     {
         using var context = CreateDbContext();
         var (_, student, _, internship) = await SeedDataAsync(context);
-        var service = new ApplicationService(context);
+        var service = CreateService(context);
 
         var dto = new CreateApplicationDto
         {
@@ -109,7 +116,7 @@ public class ApplicationServiceTests
     {
         using var context = CreateDbContext();
         var (_, student, _, internship) = await SeedDataAsync(context);
-        var service = new ApplicationService(context);
+        var service = CreateService(context);
 
         var dto = new CreateApplicationDto
         {
@@ -130,7 +137,7 @@ public class ApplicationServiceTests
     {
         using var context = CreateDbContext();
         var (_, student, _, internship) = await SeedDataAsync(context);
-        var service = new ApplicationService(context);
+        var service = CreateService(context);
 
         var dto = new CreateApplicationDto
         {
@@ -166,7 +173,7 @@ public class ApplicationServiceTests
             internshipStatus: InternshipStatus.Published,
             deadline: DateTime.UtcNow.AddDays(-1)); // Deadline yesterday
 
-        var service = new ApplicationService(context);
+        var service = CreateService(context);
 
         var result = await service.ApplyAsync(student.Id, new CreateApplicationDto
         {
@@ -183,7 +190,7 @@ public class ApplicationServiceTests
     {
         using var context = CreateDbContext();
         var (_, student, company, internship) = await SeedDataAsync(context);
-        var service = new ApplicationService(context);
+        var service = CreateService(context);
 
         var applyResult = await service.ApplyAsync(student.Id, new CreateApplicationDto
         {
