@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
+using Praktikaportaal.Core.Exceptions;
 using Praktikaportaal.Infrastructure.Persistence;
 using Praktikaportaal.Core.Services;
 using Praktikaportaal.Infrastructure.Persistence.Repositories;
@@ -99,11 +100,8 @@ public class ApplicationServiceTests
             CoverLetter = "I am excited to apply!"
         };
 
-        var (success, error, appDto) = await service.ApplyAsync(student.Id, dto);
+        var appDto = await service.ApplyAsync(student.Id, dto);
 
-        Assert.True(success);
-        Assert.Null(error);
-        Assert.NotNull(appDto);
         Assert.Equal(ApplicationStatus.Submitted, appDto.Status);
         Assert.Equal("Mari Tamm", appDto.StudentName);
 
@@ -124,12 +122,10 @@ public class ApplicationServiceTests
             CoverLetter = "First application"
         };
 
-        var first = await service.ApplyAsync(student.Id, dto);
-        Assert.True(first.Success);
+        await service.ApplyAsync(student.Id, dto);
 
-        var second = await service.ApplyAsync(student.Id, dto);
-        Assert.False(second.Success);
-        Assert.Contains("already have an active application", second.Error);
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => service.ApplyAsync(student.Id, dto));
+        Assert.Contains("already have an active application", ex.Message);
     }
 
     [Fact]
@@ -146,11 +142,9 @@ public class ApplicationServiceTests
         };
 
         var first = await service.ApplyAsync(student.Id, dto);
-        Assert.True(first.Success);
 
         // Student withdraws
-        bool withdrawn = await service.WithdrawApplicationAsync(first.Application!.Id, student.Id);
-        Assert.True(withdrawn);
+        await service.WithdrawApplicationAsync(first.Id, student.Id);
 
         // Reapply after withdrawal must succeed
         var second = await service.ApplyAsync(student.Id, new CreateApplicationDto
@@ -159,13 +153,12 @@ public class ApplicationServiceTests
             CoverLetter = "Reapplying with updated CV"
         });
 
-        Assert.True(second.Success);
-        Assert.NotNull(second.Application);
-        Assert.Equal(ApplicationStatus.Submitted, second.Application.Status);
+        Assert.Equal(ApplicationStatus.Submitted, second.Status);
+        Assert.NotEqual(first.Id, second.Id);
     }
 
     [Fact]
-    public async Task Apply_WhenDeadlinePassed_Fails()
+    public async Task Apply_WhenDeadlinePassed_ThrowsBusinessRule()
     {
         using var context = CreateDbContext();
         var (_, student, _, internship) = await SeedDataAsync(
@@ -175,14 +168,13 @@ public class ApplicationServiceTests
 
         var service = CreateService(context);
 
-        var result = await service.ApplyAsync(student.Id, new CreateApplicationDto
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ApplyAsync(student.Id, new CreateApplicationDto
         {
             InternshipId = internship.Id,
             CoverLetter = "Late application"
-        });
+        }));
 
-        Assert.False(result.Success);
-        Assert.Contains("deadline", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("deadline", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -198,14 +190,12 @@ public class ApplicationServiceTests
             CoverLetter = "Please hire me"
         });
 
-        bool updated = await service.UpdateApplicationStatusAsync(
-            applyResult.Application!.Id,
+        await service.UpdateApplicationStatusAsync(
+            applyResult.Id,
             company.Id,
             ApplicationStatus.Accepted);
 
-        Assert.True(updated);
-
-        var appInDb = await context.Applications.FindAsync(applyResult.Application.Id);
+        var appInDb = await context.Applications.FindAsync(applyResult.Id);
         Assert.NotNull(appInDb);
         Assert.Equal(ApplicationStatus.Accepted, appInDb.Status);
     }
