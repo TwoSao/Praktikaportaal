@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Core.Interfaces.Repositories;
 using Praktikaportaal.Core.Services;
+using Praktikaportaal.Infrastructure.Options;
 using Praktikaportaal.Infrastructure.Persistence;
 using Praktikaportaal.Infrastructure.Persistence.Repositories;
 using Praktikaportaal.Infrastructure.Persistence.Seed;
@@ -25,6 +26,12 @@ public static class DependencyInjection
                 options.UseSqlServer(connectionString, sql =>
                     sql.MigrationsAssembly(typeof(PraktikaportaalDbContext).Assembly.FullName)));
         }
+
+        // Strongly-typed JWT settings, validated when the host starts (fails fast on a missing/short secret).
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Repositories (data access) + unit of work
         services.AddScoped<IUnitOfWork, UnitOfWork>();

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Praktikaportaal.Core.Constants;
 using Praktikaportaal.API.Extensions;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Interfaces;
@@ -37,7 +38,7 @@ public class InternshipsController : ControllerBase
     }
 
     /// <summary>Returns all internships published by the authenticated company.</summary>
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = Roles.Company)]
     [HttpGet("my")]
     [ProducesResponseType(typeof(IReadOnlyList<InternshipDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -52,7 +53,7 @@ public class InternshipsController : ControllerBase
     }
 
     /// <summary>Creates a new internship listing.</summary>
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = Roles.Company)]
     [HttpPost]
     [ProducesResponseType(typeof(InternshipDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -71,7 +72,7 @@ public class InternshipsController : ControllerBase
     }
 
     /// <summary>Updates status of an internship listing (Draft, Published, Closed, Archived).</summary>
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = Roles.Company)]
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
