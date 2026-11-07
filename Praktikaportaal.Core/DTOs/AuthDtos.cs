@@ -46,16 +46,9 @@ public class UserDto
     public Guid? ProfileId { get; set; }
 }
 
+/// <summary>Successful login/registration result: JWT access token and the user.</summary>
 public class AuthResultDto
 {
-    public bool Success { get; set; }
-    public string? Token { get; set; }
-    public string? Error { get; set; }
-    public UserDto? User { get; set; }
-
-    public static AuthResultDto Succeeded(string token, UserDto user) =>
-        new() { Success = true, Token = token, User = user };
-
-    public static AuthResultDto Failed(string error) =>
-        new() { Success = false, Error = error };
+    public string Token { get; set; } = string.Empty;
+    public UserDto User { get; set; } = new();
 }
