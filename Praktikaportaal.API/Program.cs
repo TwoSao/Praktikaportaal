@@ -1,8 +1,12 @@
+using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Praktikaportaal.API.ErrorHandling;
+using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Infrastructure;
 using Praktikaportaal.Infrastructure.Options;
 using Praktikaportaal.Infrastructure.Persistence.Seed;
@@ -75,9 +79,40 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// ── Controllers & OpenAPI ──────────────────────────────────────────────────
-builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+// ── Controllers: enums as strings in JSON ("Submitted" instead of 0) ──────
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// ── Swagger / OpenAPI: XML docs, examples, JWT "Authorize" button ─────────
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Praktikaportaal API",
+        Version = "v1",
+        Description = "Internship portal: students, companies, internships, applications. " +
+                      "Log in via POST /api/auth/login, then press Authorize and paste the token."
+    });
+
+    // XML comments from the API (controllers) and Core (DTOs, incl. <example> values).
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{typeof(LoginDto).Assembly.GetName().Name}.xml"));
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT from /api/auth/login (paste the token only, without 'Bearer ')."
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 var app = builder.Build();
 
@@ -94,8 +129,10 @@ app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.UseSwagger();
+    app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "Praktikaportaal API v1"));
+    // Alternative UI on /scalar, reading the same Swagger document.
+    app.MapScalarApiReference(o => o.WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json"));
 }
 
 app.UseHttpsRedirection();
