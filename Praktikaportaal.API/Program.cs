@@ -2,12 +2,36 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Praktikaportaal.API.ErrorHandling;
 using Praktikaportaal.Infrastructure;
 using Praktikaportaal.Infrastructure.Options;
 using Praktikaportaal.Infrastructure.Persistence.Seed;
 using Scalar.AspNetCore;
+using Serilog;
+
+// Bootstrap logger catches startup errors before configuration is loaded.
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Logging: Serilog (console + rolling file), configured in the "Serilog" section ──
+builder.Services.AddSerilog((services, lc) => lc
+    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
+
+// ── Error handling: RFC 7807 ProblemDetails for every error response ──────
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = ctx =>
+    {
+        ctx.ProblemDetails.Instance = $"{ctx.HttpContext.Request.Method} {ctx.HttpContext.Request.Path}";
+        ctx.ProblemDetails.Extensions["traceId"] = ctx.HttpContext.TraceIdentifier;
+    };
+});
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // ── Infrastructure & Database ──────────────────────────────────────────────
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -64,6 +88,10 @@ if (app.Configuration.GetValue<bool>("Database:MigrateAndSeedOnStartup"))
 }
 
 // ── Middleware pipeline ────────────────────────────────────────────────────
+app.UseExceptionHandler();   // exceptions → ProblemDetails (GlobalExceptionHandler)
+app.UseStatusCodePages();    // empty 401/403/404 responses → ProblemDetails
+app.UseSerilogRequestLogging();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

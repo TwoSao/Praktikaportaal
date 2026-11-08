@@ -1,6 +1,7 @@
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
+using Praktikaportaal.Core.Exceptions;
 using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Core.Interfaces.Repositories;
 
@@ -30,7 +31,7 @@ public class AuthService : IAuthService
         string normalizedEmail = NormalizeEmail(dto.Email);
 
         if (await _users.EmailExistsAsync(normalizedEmail, ct))
-            return AuthResultDto.Failed("User with this email already exists.");
+            throw new ConflictException("User with this email already exists.");
 
         var user = CreateUser(normalizedEmail, dto.Password, dto.FirstName, dto.LastName, UserRole.Student);
 
@@ -56,7 +57,7 @@ public class AuthService : IAuthService
         string normalizedEmail = NormalizeEmail(dto.Email);
 
         if (await _users.EmailExistsAsync(normalizedEmail, ct))
-            return AuthResultDto.Failed("User with this email already exists.");
+            throw new ConflictException("User with this email already exists.");
 
         var user = CreateUser(normalizedEmail, dto.Password, dto.FirstName, dto.LastName, UserRole.Company);
 
@@ -83,22 +84,21 @@ public class AuthService : IAuthService
     {
         var user = await _users.GetByEmailAsync(NormalizeEmail(dto.Email), ct);
 
-        if (user == null)
-            return AuthResultDto.Failed("Invalid email or password.");
+        // Same message for unknown email and wrong password (no account enumeration).
+        if (user == null || !_passwordHasher.VerifyPassword(dto.Password, user.PasswordHash))
+            throw new UnauthorizedException();
 
         if (!user.IsActive)
-            return AuthResultDto.Failed("Account is deactivated. Please contact support.");
-
-        if (!_passwordHasher.VerifyPassword(dto.Password, user.PasswordHash))
-            return AuthResultDto.Failed("Invalid email or password.");
+            throw new UnauthorizedException("Account is deactivated. Please contact support.");
 
         return Succeeded(user, GetProfileId(user));
     }
 
-    public async Task<UserDto?> GetUserByIdAsync(Guid userId, CancellationToken ct = default)
+    public async Task<UserDto> GetUserByIdAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _users.GetByIdAsync(userId, ct);
-        return user == null ? null : MapToDto(user, GetProfileId(user));
+        var user = await _users.GetByIdAsync(userId, ct)
+            ?? throw new NotFoundException("User", userId);
+        return MapToDto(user, GetProfileId(user));
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
@@ -121,7 +121,7 @@ public class AuthService : IAuthService
     };
 
     private AuthResultDto Succeeded(User user, Guid? profileId) =>
-        AuthResultDto.Succeeded(_jwtTokenService.GenerateToken(user, profileId), MapToDto(user, profileId));
+        new() { Token = _jwtTokenService.GenerateToken(user, profileId), User = MapToDto(user, profileId) };
 
     private static UserDto MapToDto(User user, Guid? profileId) => new()
     {
