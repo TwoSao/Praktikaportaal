@@ -45,7 +45,7 @@ public class ApplicationService : IApplicationService
         if (await _applications.HasActiveApplicationAsync(studentProfileId, internshipId, ct))
             throw new ConflictException("You already have an active application for this internship.");
 
-        var studentProfile = await _students.GetByIdAsync(studentProfileId, ct)
+        var studentProfile = await _students.GetWithSkillsAsync(studentProfileId, ct)
             ?? throw new NotFoundException("Student profile", studentProfileId);
 
         var application = new Application
@@ -176,6 +176,7 @@ public class ApplicationService : IApplicationService
         StudyProgram = a.StudentProfile.StudyProgram,
         Course = a.StudentProfile.Course,
         CoverLetter = a.CoverLetter,
+        HasCv = a.StudentProfile.CVs.Any(cv => !cv.IsDeleted),
         Status = a.Status,
         AppliedAt = a.AppliedAt
     };
