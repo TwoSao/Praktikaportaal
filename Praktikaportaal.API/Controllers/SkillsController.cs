@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Praktikaportaal.Core.Constants;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Interfaces;
 
@@ -7,6 +8,7 @@ namespace Praktikaportaal.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
 public class SkillsController : ControllerBase
 {
     private readonly ISkillService _skillService;
@@ -16,25 +18,21 @@ public class SkillsController : ControllerBase
         _skillService = skillService;
     }
 
-    /// <summary>Returns all available skill tags.</summary>
+    /// <summary>Returns all available skill tags, sorted by name.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<SkillDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
-    {
-        var list = await _skillService.GetAllSkillsAsync(ct);
-        return Ok(list);
-    }
+    public async Task<ActionResult<IReadOnlyList<SkillDto>>> GetAll(CancellationToken ct) =>
+        Ok(await _skillService.GetAllSkillsAsync(ct));
 
-    /// <summary>Creates a new skill tag.</summary>
-    [Authorize]
+    /// <summary>
+    /// Creates a new skill tag (Company or Admin). If a skill with the same name exists, it is returned instead.
+    /// </summary>
+    [Authorize(Roles = Roles.CompanyOrAdmin)]
     [HttpPost]
     [ProducesResponseType(typeof(SkillDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] CreateSkillDto dto, CancellationToken ct)
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<SkillDto>> Create([FromBody] CreateSkillDto dto, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest(new { error = "Skill name is required." });
-
         var created = await _skillService.CreateSkillAsync(dto, ct);
         return CreatedAtAction(nameof(GetAll), null, created);
     }
