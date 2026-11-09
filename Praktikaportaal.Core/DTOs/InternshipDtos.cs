@@ -55,6 +55,11 @@ public class CreateInternshipDto : IValidatableObject
     }
 }
 
+/// <summary>Full update of an internship listing (owning Company or Admin). Same rules as creation.</summary>
+public class UpdateInternshipDto : CreateInternshipDto
+{
+}
+
 /// <summary>Internship listing as returned by the API.</summary>
 public class InternshipDto
 {

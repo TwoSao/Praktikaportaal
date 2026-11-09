@@ -22,6 +22,12 @@ public class SkillRepository : ISkillRepository
         return _context.Skills.FirstOrDefaultAsync(s => s.Name.ToLower() == lower, ct);
     }
 
+    public async Task<IReadOnlyList<Skill>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idList = ids.ToList();
+        return await _context.Skills.Where(s => idList.Contains(s.Id)).ToListAsync(ct);
+    }
+
     public async Task AddAsync(Skill skill, CancellationToken ct = default) =>
         await _context.Skills.AddAsync(skill, ct);
 }

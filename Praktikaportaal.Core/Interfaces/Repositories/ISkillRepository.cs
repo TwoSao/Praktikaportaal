@@ -10,5 +10,7 @@ public interface ISkillRepository
     /// <summary>Case-insensitive lookup by name.</summary>
     Task<Skill?> GetByNameAsync(string name, CancellationToken ct = default);
 
+    Task<IReadOnlyList<Skill>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
+
     Task AddAsync(Skill skill, CancellationToken ct = default);
 }

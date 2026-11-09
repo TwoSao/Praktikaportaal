@@ -51,9 +51,6 @@ public class InternshipRepository : IInternshipRepository
             .OrderByDescending(i => i.CreatedAt)
             .ToListAsync(ct);
 
-    public Task<bool> IsOwnedByCompanyAsync(Guid internshipId, Guid companyProfileId, CancellationToken ct = default) =>
-        _context.Internships.AnyAsync(i => i.Id == internshipId && i.CompanyProfileId == companyProfileId, ct);
-
     public async Task AddAsync(Internship internship, CancellationToken ct = default) =>
         await _context.Internships.AddAsync(internship, ct);
 }
