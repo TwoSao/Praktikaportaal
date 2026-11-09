@@ -151,3 +151,4 @@ public class InternshipService : IInternshipService
         ApplicationsCount = i.Applications.Count(a => a.Status != ApplicationStatus.Withdrawn)
     };
 }
+

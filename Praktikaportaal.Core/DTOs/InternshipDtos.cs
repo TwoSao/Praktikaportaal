@@ -40,3 +40,4 @@ public class UpdateInternshipStatusDto
 {
     public InternshipStatus Status { get; set; }
 }
+

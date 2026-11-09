@@ -55,3 +55,4 @@ public class PasswordHasherTests
         Assert.True(_hasher.VerifyPassword(password, hash2));
     }
 }
+

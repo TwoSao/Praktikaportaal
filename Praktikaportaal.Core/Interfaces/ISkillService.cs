@@ -7,3 +7,4 @@ public interface ISkillService
     Task<IReadOnlyList<SkillDto>> GetAllSkillsAsync(CancellationToken ct = default);
     Task<SkillDto> CreateSkillAsync(CreateSkillDto dto, CancellationToken ct = default);
 }
+

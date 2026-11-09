@@ -39,3 +39,4 @@ public class SkillsController : ControllerBase
         return CreatedAtAction(nameof(GetAll), null, created);
     }
 }
+

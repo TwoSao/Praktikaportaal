@@ -11,3 +11,4 @@ public interface IInternshipService
     Task<InternshipDto> CreateInternshipAsync(Guid companyProfileId, CreateInternshipDto dto, CancellationToken ct = default);
     Task<bool> UpdateInternshipStatusAsync(Guid internshipId, Guid companyProfileId, InternshipStatus newStatus, CancellationToken ct = default);
 }
+

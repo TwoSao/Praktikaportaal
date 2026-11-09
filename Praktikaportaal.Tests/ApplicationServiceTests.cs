@@ -202,3 +202,4 @@ public class ApplicationServiceTests
         Assert.Equal(ApplicationStatus.Accepted, appInDb.Status);
     }
 }
+

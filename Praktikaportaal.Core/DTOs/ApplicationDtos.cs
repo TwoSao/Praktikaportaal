@@ -30,3 +30,4 @@ public class UpdateApplicationStatusDto
 {
     public ApplicationStatus Status { get; set; }
 }
+

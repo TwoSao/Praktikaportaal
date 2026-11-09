@@ -176,3 +176,4 @@ public class ApplicationService : IApplicationService
         AppliedAt = a.AppliedAt
     };
 }
+

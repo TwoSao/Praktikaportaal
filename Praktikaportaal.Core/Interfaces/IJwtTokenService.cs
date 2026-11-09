@@ -6,3 +6,4 @@ public interface IJwtTokenService
 {
     string GenerateToken(User user, Guid? profileId);
 }
+
