@@ -28,11 +28,12 @@ public class ApplicationService : IApplicationService
 
     public async Task<ApplicationDto> ApplyAsync(
         Guid studentProfileId,
+        Guid internshipId,
         CreateApplicationDto dto,
         CancellationToken ct = default)
     {
-        var internship = await _internships.GetByIdAsync(dto.InternshipId, ct)
-            ?? throw new NotFoundException("Internship", dto.InternshipId);
+        var internship = await _internships.GetByIdAsync(internshipId, ct)
+            ?? throw new NotFoundException("Internship", internshipId);
 
         if (internship.Status != InternshipStatus.Published)
             throw new BusinessRuleException("This internship is not currently accepting applications.");
@@ -41,7 +42,7 @@ public class ApplicationService : IApplicationService
             throw new BusinessRuleException("The application deadline for this internship has passed.");
 
         // Business rule: one active (non-withdrawn) application per student per internship.
-        if (await _applications.HasActiveApplicationAsync(studentProfileId, dto.InternshipId, ct))
+        if (await _applications.HasActiveApplicationAsync(studentProfileId, internshipId, ct))
             throw new ConflictException("You already have an active application for this internship.");
 
         var studentProfile = await _students.GetByIdAsync(studentProfileId, ct)
@@ -93,13 +94,15 @@ public class ApplicationService : IApplicationService
 
     public async Task<IReadOnlyList<ApplicationDto>> GetInternshipApplicationsAsync(
         Guid internshipId,
-        Guid companyProfileId,
+        CurrentUser caller,
         CancellationToken ct = default)
     {
         var internship = await _internships.GetByIdAsync(internshipId, ct)
             ?? throw new NotFoundException("Internship", internshipId);
 
-        if (internship.CompanyProfileId != companyProfileId)
+        bool allowed = caller.Role == UserRole.Admin ||
+                       (caller.Role == UserRole.Company && caller.ProfileId == internship.CompanyProfileId);
+        if (!allowed)
             throw new ForbiddenException("Only the company that owns this internship can see its applications.");
 
         var list = await _applications.GetByInternshipAsync(internshipId, ct);
