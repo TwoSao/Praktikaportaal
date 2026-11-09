@@ -9,7 +9,11 @@ namespace Praktikaportaal.Core.Interfaces;
 /// </summary>
 public interface IInternshipService
 {
-    Task<IReadOnlyList<InternshipDto>> GetPublishedInternshipsAsync(string? search = null, bool? isRemote = null, CancellationToken ct = default);
+    /// <summary>Published listings: search, filter by field/location/remote/createdAfter, sort and paginate.</summary>
+    Task<PagedResult<InternshipDto>> SearchInternshipsAsync(InternshipQueryParameters query, CancellationToken ct = default);
+
+    /// <summary>Distinct fields and locations of published listings (for filter dropdowns).</summary>
+    Task<InternshipFiltersDto> GetFiltersAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Returns a listing. Non-published listings are visible only to the owning company and admins;
