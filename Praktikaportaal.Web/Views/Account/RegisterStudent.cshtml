@@ -1,0 +1,91 @@
+@model Praktikaportaal.Web.Models.RegisterStudentViewModel
+@{
+    ViewData["Title"] = "Õppuri registreerimine";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0 my-4">
+            <div class="card-body p-4">
+                <h3 class="fw-bold mb-2 text-center">Õppuri registreerimine</h3>
+                <p class="text-muted text-center mb-4 small">Loo konto Tallinna Tööstushariduskeskuse õppurina</p>
+
+                <form asp-action="RegisterStudent" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label fw-semibold">Eesnimi *</label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label fw-semibold">Perekonnanimi *</label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label fw-semibold">E-post *</label>
+                            <input asp-for="Email" class="form-control" placeholder="nimi@tthk.ee" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label fw-semibold">Parool *</label>
+                            <input asp-for="Password" class="form-control" placeholder="Vähemalt 6 tähemärki" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold">Korda parooli *</label>
+                            <input asp-for="ConfirmPassword" class="form-control" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="SchoolName" class="form-label fw-semibold">Õppeasutus *</label>
+                            <input asp-for="SchoolName" class="form-control" />
+                            <span asp-validation-for="SchoolName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label asp-for="StudyProgram" class="form-label fw-semibold">Eriala / Õppekava *</label>
+                            <input asp-for="StudyProgram" class="form-control" />
+                            <span asp-validation-for="StudyProgram" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Course" class="form-label fw-semibold">Kursus *</label>
+                            <input asp-for="Course" class="form-control" type="number" min="1" max="6" />
+                            <span asp-validation-for="Course" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold">Telefoninumber</label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="+372 5..." />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Location" class="form-label fw-semibold">Asukoht / Linn</label>
+                            <input asp-for="Location" class="form-control" placeholder="Tallinn" />
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-4">Loo õppuri konto</button>
+                </form>
+
+                <hr class="my-4" />
+
+                <div class="text-center small text-muted">
+                    Sul on juba konto? <a asp-action="Login" class="fw-semibold">Logi sisse</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
