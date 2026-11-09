@@ -1,3 +1,4 @@
+using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 
 namespace Praktikaportaal.Core.Interfaces.Repositories;
@@ -8,8 +9,11 @@ namespace Praktikaportaal.Core.Interfaces.Repositories;
 public interface IApplicationRepository
 {
     Task<Application?> GetByIdAsync(Guid id, CancellationToken ct = default);
-    Task<IReadOnlyList<Application>> GetByStudentAsync(Guid studentProfileId, CancellationToken ct = default);
-    Task<IReadOnlyList<Application>> GetByInternshipAsync(Guid internshipId, CancellationToken ct = default);
+    /// <summary>Student's applications, newest first, filtered and paged.</summary>
+    Task<(IReadOnlyList<Application> Items, int TotalCount)> GetByStudentAsync(Guid studentProfileId, ApplicationQueryParameters query, CancellationToken ct = default);
+
+    /// <summary>Applications for an internship, newest first, filtered and paged.</summary>
+    Task<(IReadOnlyList<Application> Items, int TotalCount)> GetByInternshipAsync(Guid internshipId, ApplicationQueryParameters query, CancellationToken ct = default);
 
     /// <summary>True if the student has a non-withdrawn application for the internship.</summary>
     Task<bool> HasActiveApplicationAsync(Guid studentProfileId, Guid internshipId, CancellationToken ct = default);
