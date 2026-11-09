@@ -1,19 +1,20 @@
-using Microsoft.EntityFrameworkCore;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Interfaces;
-using Praktikaportaal.Infrastructure.Persistence;
+using Praktikaportaal.Core.Interfaces.Repositories;
 
-namespace Praktikaportaal.Infrastructure.Services;
+namespace Praktikaportaal.Core.Services;
 
 public class InternshipService : IInternshipService
 {
-    private readonly PraktikaportaalDbContext _context;
+    private readonly IInternshipRepository _internships;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public InternshipService(PraktikaportaalDbContext context)
+    public InternshipService(IInternshipRepository internships, IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _internships = internships;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IReadOnlyList<InternshipDto>> GetPublishedInternshipsAsync(
@@ -21,58 +22,19 @@ public class InternshipService : IInternshipService
         bool? isRemote = null,
         CancellationToken ct = default)
     {
-        var query = _context.Internships
-            .Include(i => i.CompanyProfile)
-            .Include(i => i.InternshipSkills)
-                .ThenInclude(isk => isk.Skill)
-            .Include(i => i.Applications)
-            .Where(i => i.Status == InternshipStatus.Published);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            string s = search.Trim().ToLower();
-            query = query.Where(i =>
-                i.Title.ToLower().Contains(s) ||
-                i.Description.ToLower().Contains(s) ||
-                (i.Location != null && i.Location.ToLower().Contains(s)) ||
-                i.CompanyProfile.CompanyName.ToLower().Contains(s));
-        }
-
-        if (isRemote.HasValue)
-        {
-            query = query.Where(i => i.IsRemote == isRemote.Value);
-        }
-
-        var list = await query
-            .OrderByDescending(i => i.CreatedAt)
-            .ToListAsync(ct);
-
+        var list = await _internships.GetPublishedAsync(search, isRemote, ct);
         return list.Select(MapToDto).ToList();
     }
 
     public async Task<InternshipDto?> GetInternshipByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var internship = await _context.Internships
-            .Include(i => i.CompanyProfile)
-            .Include(i => i.InternshipSkills)
-                .ThenInclude(isk => isk.Skill)
-            .Include(i => i.Applications)
-            .FirstOrDefaultAsync(i => i.Id == id, ct);
-
+        var internship = await _internships.GetByIdAsync(id, ct);
         return internship == null ? null : MapToDto(internship);
     }
 
     public async Task<IReadOnlyList<InternshipDto>> GetCompanyInternshipsAsync(Guid companyProfileId, CancellationToken ct = default)
     {
-        var list = await _context.Internships
-            .Include(i => i.CompanyProfile)
-            .Include(i => i.InternshipSkills)
-                .ThenInclude(isk => isk.Skill)
-            .Include(i => i.Applications)
-            .Where(i => i.CompanyProfileId == companyProfileId)
-            .OrderByDescending(i => i.CreatedAt)
-            .ToListAsync(ct);
-
+        var list = await _internships.GetByCompanyAsync(companyProfileId, ct);
         return list.Select(MapToDto).ToList();
     }
 
@@ -93,24 +55,22 @@ public class InternshipService : IInternshipService
             EndDate = dto.EndDate,
             ApplicationDeadline = dto.ApplicationDeadline,
             IsRemote = dto.IsRemote,
-            Status = InternshipStatus.Published // by default published on creation so students can see it
+            Status = InternshipStatus.Published // published on creation so students can see it
         };
 
-        if (dto.SkillIds != null && dto.SkillIds.Count > 0)
+        foreach (var skillId in dto.SkillIds?.Distinct() ?? [])
         {
-            foreach (var skillId in dto.SkillIds.Distinct())
+            internship.InternshipSkills.Add(new InternshipSkill
             {
-                internship.InternshipSkills.Add(new InternshipSkill
-                {
-                    InternshipId = internship.Id,
-                    SkillId = skillId
-                });
-            }
+                InternshipId = internship.Id,
+                SkillId = skillId
+            });
         }
 
-        await _context.Internships.AddAsync(internship, ct);
-        await _context.SaveChangesAsync(ct);
+        await _internships.AddAsync(internship, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
+        // Reload with company and skill names for the response.
         return (await GetInternshipByIdAsync(internship.Id, ct))!;
     }
 
@@ -120,14 +80,13 @@ public class InternshipService : IInternshipService
         InternshipStatus newStatus,
         CancellationToken ct = default)
     {
-        var internship = await _context.Internships
-            .FirstOrDefaultAsync(i => i.Id == internshipId && i.CompanyProfileId == companyProfileId, ct);
+        var internship = await _internships.GetByIdAsync(internshipId, ct);
 
-        if (internship == null)
+        if (internship == null || internship.CompanyProfileId != companyProfileId)
             return false;
 
         internship.Status = newStatus;
-        await _context.SaveChangesAsync(ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return true;
     }
 

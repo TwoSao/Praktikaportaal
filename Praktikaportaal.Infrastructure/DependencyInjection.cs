@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Praktikaportaal.Core.Interfaces;
+using Praktikaportaal.Core.Interfaces.Repositories;
+using Praktikaportaal.Core.Services;
 using Praktikaportaal.Infrastructure.Persistence;
+using Praktikaportaal.Infrastructure.Persistence.Repositories;
 using Praktikaportaal.Infrastructure.Services;
 
 namespace Praktikaportaal.Infrastructure;
@@ -22,8 +25,19 @@ public static class DependencyInjection
                     sql.MigrationsAssembly(typeof(PraktikaportaalDbContext).Assembly.FullName)));
         }
 
+        // Repositories (data access) + unit of work
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IInternshipRepository, InternshipRepository>();
+        services.AddScoped<IApplicationRepository, ApplicationRepository>();
+        services.AddScoped<IStudentProfileRepository, StudentProfileRepository>();
+        services.AddScoped<ISkillRepository, SkillRepository>();
+
+        // Infrastructure services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        // Business services (Core)
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IInternshipService, InternshipService>();
         services.AddScoped<IApplicationService, ApplicationService>();
