@@ -1,6 +1,7 @@
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
+using Praktikaportaal.Core.Exceptions;
 using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Core.Interfaces.Repositories;
 
@@ -26,10 +27,11 @@ public class InternshipService : IInternshipService
         return list.Select(MapToDto).ToList();
     }
 
-    public async Task<InternshipDto?> GetInternshipByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<InternshipDto> GetInternshipByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var internship = await _internships.GetByIdAsync(id, ct);
-        return internship == null ? null : MapToDto(internship);
+        var internship = await _internships.GetByIdAsync(id, ct)
+            ?? throw new NotFoundException("Internship", id);
+        return MapToDto(internship);
     }
 
     public async Task<IReadOnlyList<InternshipDto>> GetCompanyInternshipsAsync(Guid companyProfileId, CancellationToken ct = default)
@@ -71,23 +73,23 @@ public class InternshipService : IInternshipService
         await _unitOfWork.SaveChangesAsync(ct);
 
         // Reload with company and skill names for the response.
-        return (await GetInternshipByIdAsync(internship.Id, ct))!;
+        return await GetInternshipByIdAsync(internship.Id, ct);
     }
 
-    public async Task<bool> UpdateInternshipStatusAsync(
+    public async Task UpdateInternshipStatusAsync(
         Guid internshipId,
         Guid companyProfileId,
         InternshipStatus newStatus,
         CancellationToken ct = default)
     {
-        var internship = await _internships.GetByIdAsync(internshipId, ct);
+        var internship = await _internships.GetByIdAsync(internshipId, ct)
+            ?? throw new NotFoundException("Internship", internshipId);
 
-        if (internship == null || internship.CompanyProfileId != companyProfileId)
-            return false;
+        if (internship.CompanyProfileId != companyProfileId)
+            throw new ForbiddenException("Internship does not belong to your company.");
 
         internship.Status = newStatus;
         await _unitOfWork.SaveChangesAsync(ct);
-        return true;
     }
 
     private static InternshipDto MapToDto(Internship i) => new()

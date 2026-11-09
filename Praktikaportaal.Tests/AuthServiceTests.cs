@@ -4,6 +4,7 @@ using Moq;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
+using Praktikaportaal.Core.Exceptions;
 using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Infrastructure.Persistence;
 using Praktikaportaal.Core.Services;
@@ -47,7 +48,6 @@ public class AuthServiceTests
 
         var result = await authService.RegisterStudentAsync(dto);
 
-        Assert.True(result.Success);
         Assert.NotNull(result.Token);
         Assert.NotNull(result.User);
         Assert.Equal(UserRole.Student, result.User.Role);
@@ -64,7 +64,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterStudent_WithExistingEmail_ReturnsError()
+    public async Task RegisterStudent_WithExistingEmail_ThrowsConflict()
     {
         using var context = CreateDbContext();
         var passwordHasher = new PasswordHasher();
@@ -94,10 +94,8 @@ public class AuthServiceTests
             Course = 1
         };
 
-        var result = await authService.RegisterStudentAsync(dto);
-
-        Assert.False(result.Success);
-        Assert.Contains("already exists", result.Error, StringComparison.OrdinalIgnoreCase);
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => authService.RegisterStudentAsync(dto));
+        Assert.Contains("already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -140,7 +138,6 @@ public class AuthServiceTests
 
         var result = await authService.LoginAsync(loginDto);
 
-        Assert.True(result.Success);
         Assert.Equal("valid_jwt_token", result.Token);
         Assert.Equal(UserRole.Company, result.User?.Role);
         Assert.Equal(companyProfile.Id, result.User?.ProfileId);
