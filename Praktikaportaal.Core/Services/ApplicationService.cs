@@ -123,6 +123,15 @@ public class ApplicationService : IApplicationService
         if (application.Internship.CompanyProfileId != companyProfileId)
             throw new ForbiddenException("Only the company that owns the internship can change the application status.");
 
+        if (!ApplicationStatusRules.CanCompanyChange(application.Status, newStatus))
+        {
+            var allowed = ApplicationStatusRules.AllowedForCompany(application.Status);
+            string hint = allowed.Count == 0
+                ? "This status is final."
+                : $"Allowed next statuses: {string.Join(", ", allowed)}.";
+            throw new BusinessRuleException($"Cannot change application status from {application.Status} to {newStatus}. {hint}");
+        }
+
         application.Status = newStatus;
         await _unitOfWork.SaveChangesAsync(ct);
     }
@@ -138,7 +147,7 @@ public class ApplicationService : IApplicationService
         if (application.StudentProfileId != studentProfileId)
             throw new ForbiddenException("You can only withdraw your own applications.");
 
-        if (application.Status is ApplicationStatus.Accepted or ApplicationStatus.Rejected or ApplicationStatus.Withdrawn)
+        if (!ApplicationStatusRules.CanStudentWithdraw(application.Status))
             throw new BusinessRuleException($"An application with status {application.Status} cannot be withdrawn.");
 
         application.Status = ApplicationStatus.Withdrawn;
