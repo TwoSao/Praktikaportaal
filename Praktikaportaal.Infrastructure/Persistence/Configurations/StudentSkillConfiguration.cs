@@ -29,5 +29,8 @@ public class StudentSkillConfiguration : IEntityTypeConfiguration<StudentSkill>
             .WithMany(s => s.StudentSkills)
             .HasForeignKey(ss => ss.SkillId)
             .OnDelete(DeleteBehavior.Restrict); // skills are shared; can't cascade-delete
+
+        // Hide join rows whose principal is soft-deleted (matches the principals' query filters).
+        builder.HasQueryFilter(x => !x.Skill.IsDeleted && !x.StudentProfile.IsDeleted);
     }
 }

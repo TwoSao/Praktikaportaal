@@ -44,8 +44,10 @@ namespace Praktikaportaal.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<Guid>("StudentProfileId")
                         .HasColumnType("uniqueidentifier");
@@ -60,7 +62,7 @@ namespace Praktikaportaal.Infrastructure.Migrations
                     b.HasIndex("StudentProfileId", "InternshipId")
                         .IsUnique()
                         .HasDatabaseName("IX_Applications_Student_Internship_Active")
-                        .HasFilter("[Status] <> 3");
+                        .HasFilter("[Status] <> 'Withdrawn'");
 
                     b.ToTable("Applications", (string)null);
                 });
@@ -187,6 +189,11 @@ namespace Praktikaportaal.Infrastructure.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -222,6 +229,12 @@ namespace Praktikaportaal.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyProfileId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Field");
+
+                    b.HasIndex("Location");
 
                     b.ToTable("Internships", (string)null);
                 });

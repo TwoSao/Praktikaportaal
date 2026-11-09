@@ -66,7 +66,7 @@ public class ApplicationsController : ControllerBase
         return Ok(list);
     }
 
-    /// <summary>Updates candidate's application status (Accepted, Rejected, Pending) by company.</summary>
+    /// <summary>Updates candidate's application status (Viewed, Interview, Accepted, Rejected) by company.</summary>
     [Authorize(Roles = "Company")]
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
