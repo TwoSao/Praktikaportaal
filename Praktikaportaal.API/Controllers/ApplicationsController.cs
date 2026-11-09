@@ -10,6 +10,10 @@ namespace Praktikaportaal.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+/// <summary>
+/// Application endpoints by application id. Applying and listing per internship live under
+/// /api/internships/{id}/applications.
+/// </summary>
 public class ApplicationsController : ControllerBase
 {
     private readonly IApplicationService _applicationService;
@@ -17,19 +21,6 @@ public class ApplicationsController : ControllerBase
     public ApplicationsController(IApplicationService applicationService)
     {
         _applicationService = applicationService;
-    }
-
-    /// <summary>Submits an application to an internship (Student only).</summary>
-    [Authorize(Roles = Roles.Student)]
-    [HttpPost]
-    [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<ApplicationDto>> Apply([FromBody] CreateApplicationDto dto, CancellationToken ct)
-    {
-        var created = await _applicationService.ApplyAsync(User.RequireProfileId(), dto, ct);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     /// <summary>Returns one application (its student, the owning company or an admin).</summary>
@@ -47,15 +38,6 @@ public class ApplicationsController : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ApplicationDto>>> GetMyApplications(CancellationToken ct) =>
         Ok(await _applicationService.GetStudentApplicationsAsync(User.RequireProfileId(), ct));
-
-    /// <summary>Returns all applications received for a specific internship listing (owning Company only).</summary>
-    [Authorize(Roles = Roles.Company)]
-    [HttpGet("internship/{internshipId:guid}")]
-    [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IReadOnlyList<ApplicationDto>>> GetInternshipApplications(Guid internshipId, CancellationToken ct) =>
-        Ok(await _applicationService.GetInternshipApplicationsAsync(internshipId, User.RequireProfileId(), ct));
 
     /// <summary>Updates an application's status (Viewed, Interview, Accepted, Rejected) — owning Company only.</summary>
     [Authorize(Roles = Roles.Company)]
