@@ -96,11 +96,10 @@ public class ApplicationServiceTests
 
         var dto = new CreateApplicationDto
         {
-            InternshipId = internship.Id,
             CoverLetter = "I am excited to apply!"
         };
 
-        var appDto = await service.ApplyAsync(student.Id, dto);
+        var appDto = await service.ApplyAsync(student.Id, internship.Id, dto);
 
         Assert.Equal(ApplicationStatus.Submitted, appDto.Status);
         Assert.Equal("Mari Tamm", appDto.StudentName);
@@ -118,13 +117,12 @@ public class ApplicationServiceTests
 
         var dto = new CreateApplicationDto
         {
-            InternshipId = internship.Id,
             CoverLetter = "First application"
         };
 
-        await service.ApplyAsync(student.Id, dto);
+        await service.ApplyAsync(student.Id, internship.Id, dto);
 
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => service.ApplyAsync(student.Id, dto));
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => service.ApplyAsync(student.Id, internship.Id, dto));
         Assert.Contains("already have an active application", ex.Message);
     }
 
@@ -137,19 +135,17 @@ public class ApplicationServiceTests
 
         var dto = new CreateApplicationDto
         {
-            InternshipId = internship.Id,
             CoverLetter = "First attempt"
         };
 
-        var first = await service.ApplyAsync(student.Id, dto);
+        var first = await service.ApplyAsync(student.Id, internship.Id, dto);
 
         // Student withdraws
         await service.WithdrawApplicationAsync(first.Id, student.Id);
 
         // Reapply after withdrawal must succeed
-        var second = await service.ApplyAsync(student.Id, new CreateApplicationDto
+        var second = await service.ApplyAsync(student.Id, internship.Id, new CreateApplicationDto
         {
-            InternshipId = internship.Id,
             CoverLetter = "Reapplying with updated CV"
         });
 
@@ -168,9 +164,8 @@ public class ApplicationServiceTests
 
         var service = CreateService(context);
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ApplyAsync(student.Id, new CreateApplicationDto
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ApplyAsync(student.Id, internship.Id, new CreateApplicationDto
         {
-            InternshipId = internship.Id,
             CoverLetter = "Late application"
         }));
 
@@ -184,9 +179,8 @@ public class ApplicationServiceTests
         var (_, student, company, internship) = await SeedDataAsync(context);
         var service = CreateService(context);
 
-        var applyResult = await service.ApplyAsync(student.Id, new CreateApplicationDto
+        var applyResult = await service.ApplyAsync(student.Id, internship.Id, new CreateApplicationDto
         {
-            InternshipId = internship.Id,
             CoverLetter = "Please hire me"
         });
 
