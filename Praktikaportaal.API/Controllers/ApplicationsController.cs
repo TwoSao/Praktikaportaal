@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Praktikaportaal.Core.Constants;
 using Praktikaportaal.API.Extensions;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Interfaces;
@@ -18,7 +19,7 @@ public class ApplicationsController : ControllerBase
     }
 
     /// <summary>Submits an application to an internship (Student only).</summary>
-    [Authorize(Roles = "Student")]
+    [Authorize(Roles = Roles.Student)]
     [HttpPost]
     [ProducesResponseType(typeof(ApplicationDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -37,7 +38,7 @@ public class ApplicationsController : ControllerBase
     }
 
     /// <summary>Returns list of applications submitted by the logged-in student.</summary>
-    [Authorize(Roles = "Student")]
+    [Authorize(Roles = Roles.Student)]
     [HttpGet("my")]
     [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -52,7 +53,7 @@ public class ApplicationsController : ControllerBase
     }
 
     /// <summary>Returns all applications received for a specific internship listing (Company only).</summary>
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = Roles.Company)]
     [HttpGet("internship/{internshipId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -67,7 +68,7 @@ public class ApplicationsController : ControllerBase
     }
 
     /// <summary>Updates candidate's application status (Viewed, Interview, Accepted, Rejected) by company.</summary>
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = Roles.Company)]
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -83,7 +84,7 @@ public class ApplicationsController : ControllerBase
     }
 
     /// <summary>Withdraws student's application.</summary>
-    [Authorize(Roles = "Student")]
+    [Authorize(Roles = Roles.Student)]
     [HttpPost("{id:guid}/withdraw")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

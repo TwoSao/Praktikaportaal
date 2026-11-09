@@ -1,7 +1,9 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Praktikaportaal.Infrastructure;
+using Praktikaportaal.Infrastructure.Options;
 using Praktikaportaal.Infrastructure.Persistence.Seed;
 using Scalar.AspNetCore;
 
@@ -11,45 +13,42 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // ── Authentication & JWT ───────────────────────────────────────────────────
-string jwtSecret = builder.Configuration["Jwt:Secret"]
-    ?? "Praktikaportaal_Super_Secret_Key_For_Development_Environment_2026_AtLeast32Bytes!";
-string jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Praktikaportaal";
-string jwtAudience = builder.Configuration["Jwt:Audience"] ?? "PraktikaportaalApp";
+// Token validation uses the same validated JwtOptions as token generation (no fallback secrets).
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
 
 builder.Services
-    .AddAuthentication(options =>
+    .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
+        var jwt = jwtOptions.Value;
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            ClockSkew = TimeSpan.Zero
+            ValidIssuer = jwt.Issuer,
+            ValidAudience = jwt.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
+            ClockSkew = TimeSpan.FromSeconds(30)
         };
     });
 
 builder.Services.AddAuthorization();
 
-// ── CORS (for Web MVC or external SPA clients) ─────────────────────────────
+// ── CORS: only the configured client origins (Web MVC dev server etc.) ────
+const string ClientCorsPolicy = "Clients";
+string[] allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin()
+    options.AddPolicy(ClientCorsPolicy, policy =>
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+              .AllowAnyMethod());
 });
 
 // ── Controllers & OpenAPI ──────────────────────────────────────────────────
@@ -72,7 +71,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors();
+app.UseCors(ClientCorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
