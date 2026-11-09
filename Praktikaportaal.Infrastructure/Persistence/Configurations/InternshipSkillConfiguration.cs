@@ -28,5 +28,8 @@ public class InternshipSkillConfiguration : IEntityTypeConfiguration<InternshipS
             .WithMany(s => s.InternshipSkills)
             .HasForeignKey(isk => isk.SkillId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Hide join rows whose principal is soft-deleted (matches the principals' query filters).
+        builder.HasQueryFilter(x => !x.Internship.IsDeleted && !x.Skill.IsDeleted);
     }
 }

@@ -48,7 +48,7 @@ public class ApplicationService : IApplicationService
             StudentProfileId = studentProfileId,
             InternshipId = dto.InternshipId,
             CoverLetter = dto.CoverLetter?.Trim(),
-            Status = ApplicationStatus.Pending,
+            Status = ApplicationStatus.Submitted,
             AppliedAt = DateTime.UtcNow
         };
 

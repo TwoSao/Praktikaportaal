@@ -24,7 +24,7 @@ public class Application : BaseEntity
     public string? CoverLetter { get; set; }
 
     /// <summary>Current processing status of the application.</summary>
-    public ApplicationStatus Status { get; set; } = ApplicationStatus.Pending;
+    public ApplicationStatus Status { get; set; } = ApplicationStatus.Submitted;
 
     /// <summary>UTC timestamp when the application was submitted (same as CreatedAt, kept explicit for readability).</summary>
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
