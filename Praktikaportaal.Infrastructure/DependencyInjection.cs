@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IStudentProfileRepository, StudentProfileRepository>();
         services.AddScoped<ISkillRepository, SkillRepository>();
         services.AddScoped<ICvRepository, CvRepository>();
+        services.AddScoped<IStatisticsRepository, StatisticsRepository>();
 
         // Infrastructure services
         services.AddScoped<DbSeeder>();
@@ -59,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IStudentService, StudentService>();
         services.AddScoped<ICvService, CvService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
+        services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<ISkillService, SkillService>();
 
