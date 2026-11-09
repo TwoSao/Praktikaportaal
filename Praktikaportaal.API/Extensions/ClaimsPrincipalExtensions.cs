@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Praktikaportaal.Infrastructure.Services;
 
 namespace Praktikaportaal.API.Extensions;
 
@@ -12,7 +13,7 @@ public static class ClaimsPrincipalExtensions
 
     public static Guid? GetProfileId(this ClaimsPrincipal principal)
     {
-        string? idStr = principal.FindFirstValue("profile_id");
+        string? idStr = principal.FindFirstValue(JwtTokenService.ProfileIdClaim);
         return Guid.TryParse(idStr, out var id) ? id : null;
     }
 
