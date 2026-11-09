@@ -3,12 +3,9 @@ using Praktikaportaal.Core.Enums;
 
 namespace Praktikaportaal.Core.DTOs;
 
-/// <summary>Student's application to an internship.</summary>
+/// <summary>Body of POST /api/internships/{id}/applications.</summary>
 public class CreateApplicationDto
 {
-    [Required]
-    public Guid InternshipId { get; set; }
-
     /// <summary>Optional motivation message to the company.</summary>
     /// <example>Hello! I am a 2nd year software development student and would love to join your team.</example>
     [MaxLength(5000)]

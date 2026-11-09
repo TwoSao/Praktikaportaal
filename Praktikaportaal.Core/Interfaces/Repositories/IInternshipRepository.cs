@@ -10,6 +10,5 @@ public interface IInternshipRepository
     Task<Internship?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Internship>> GetPublishedAsync(string? search, bool? isRemote, CancellationToken ct = default);
     Task<IReadOnlyList<Internship>> GetByCompanyAsync(Guid companyProfileId, CancellationToken ct = default);
-    Task<bool> IsOwnedByCompanyAsync(Guid internshipId, Guid companyProfileId, CancellationToken ct = default);
     Task AddAsync(Internship internship, CancellationToken ct = default);
 }
