@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IInternshipService, InternshipService>();
         services.AddScoped<IStudentService, StudentService>();
         services.AddScoped<ICvService, CvService>();
+        services.AddScoped<IRecommendationService, RecommendationService>();
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<ISkillService, SkillService>();
 

@@ -32,7 +32,7 @@ public class InternshipService : IInternshipService
 
         return new PagedResult<InternshipDto>
         {
-            Items = items.Select(MapToDto).ToList(),
+            Items = items.Select(InternshipMapper.ToDto).ToList(),
             TotalCount = total,
             Page = query.Page,
             PageSize = query.PageSize
@@ -54,13 +54,13 @@ public class InternshipService : IInternshipService
         if (internship.Status != InternshipStatus.Published && (caller == null || !CanManage(internship, caller)))
             throw new NotFoundException("Internship", id);
 
-        return MapToDto(internship);
+        return InternshipMapper.ToDto(internship);
     }
 
     public async Task<IReadOnlyList<InternshipDto>> GetCompanyInternshipsAsync(Guid companyProfileId, CancellationToken ct = default)
     {
         var list = await _internships.GetByCompanyAsync(companyProfileId, ct);
-        return list.Select(MapToDto).ToList();
+        return list.Select(InternshipMapper.ToDto).ToList();
     }
 
     public async Task<InternshipDto> CreateInternshipAsync(
@@ -82,7 +82,7 @@ public class InternshipService : IInternshipService
         await _unitOfWork.SaveChangesAsync(ct);
 
         // Reload with company and skill names for the response.
-        return MapToDto((await _internships.GetByIdAsync(internship.Id, ct))!);
+        return InternshipMapper.ToDto((await _internships.GetByIdAsync(internship.Id, ct))!);
     }
 
     public async Task<InternshipDto> UpdateInternshipAsync(
@@ -103,7 +103,7 @@ public class InternshipService : IInternshipService
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        return MapToDto((await _internships.GetByIdAsync(internship.Id, ct))!);
+        return InternshipMapper.ToDto((await _internships.GetByIdAsync(internship.Id, ct))!);
     }
 
     public async Task DeleteInternshipAsync(Guid internshipId, CurrentUser caller, CancellationToken ct = default)
@@ -168,26 +168,4 @@ public class InternshipService : IInternshipService
         internship.ApplicationDeadline = dto.ApplicationDeadline;
         internship.IsRemote = dto.IsRemote;
     }
-
-    private static InternshipDto MapToDto(Internship i) => new()
-    {
-        Id = i.Id,
-        CompanyProfileId = i.CompanyProfileId,
-        CompanyName = i.CompanyProfile.CompanyName,
-        CompanyLocation = i.CompanyProfile.Address,
-        CompanyWebsite = i.CompanyProfile.Website,
-        Title = i.Title,
-        Description = i.Description,
-        Field = i.Field,
-        Requirements = i.Requirements,
-        Location = i.Location,
-        StartDate = i.StartDate,
-        EndDate = i.EndDate,
-        ApplicationDeadline = i.ApplicationDeadline,
-        IsRemote = i.IsRemote,
-        Status = i.Status,
-        CreatedAt = i.CreatedAt,
-        Skills = i.InternshipSkills.Where(s => s.Skill != null).Select(s => s.Skill.Name).ToList(),
-        ApplicationsCount = i.Applications.Count(a => a.Status != ApplicationStatus.Withdrawn)
-    };
 }

@@ -99,6 +99,19 @@ public class InternshipRepository : IInternshipRepository
         return (fields, locations);
     }
 
+    public async Task<IReadOnlyList<Internship>> GetOpenAsync(DateTime? createdAfter, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var query = WithDetails().AsNoTracking()
+            .Where(i => i.Status == InternshipStatus.Published &&
+                        (i.ApplicationDeadline == null || i.ApplicationDeadline >= now));
+
+        if (createdAfter.HasValue)
+            query = query.Where(i => i.CreatedAt > createdAfter.Value);
+
+        return await query.AsSplitQuery().ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Internship>> GetByCompanyAsync(Guid companyProfileId, CancellationToken ct = default) =>
         await WithDetails()
             .Where(i => i.CompanyProfileId == companyProfileId)
