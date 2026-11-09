@@ -60,6 +60,12 @@ public class ApplicationRepository : IApplicationRepository
             a.InternshipId == internshipId &&
             a.Status != ApplicationStatus.Withdrawn, ct);
 
+    public async Task<IReadOnlyList<Guid>> GetActiveInternshipIdsAsync(Guid studentProfileId, CancellationToken ct = default) =>
+        await _context.Applications
+            .Where(a => a.StudentProfileId == studentProfileId && a.Status != ApplicationStatus.Withdrawn)
+            .Select(a => a.InternshipId)
+            .ToListAsync(ct);
+
     public async Task AddAsync(Application application, CancellationToken ct = default) =>
         await _context.Applications.AddAsync(application, ct);
 }
