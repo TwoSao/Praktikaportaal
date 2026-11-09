@@ -17,10 +17,12 @@ namespace Praktikaportaal.API.Controllers;
 public class ApplicationsController : ControllerBase
 {
     private readonly IApplicationService _applicationService;
+    private readonly ICvService _cvService;
 
-    public ApplicationsController(IApplicationService applicationService)
+    public ApplicationsController(IApplicationService applicationService, ICvService cvService)
     {
         _applicationService = applicationService;
+        _cvService = cvService;
     }
 
     /// <summary>Returns one application (its student, the owning company or an admin).</summary>
@@ -64,5 +66,21 @@ public class ApplicationsController : ControllerBase
     {
         await _applicationService.WithdrawApplicationAsync(id, User.RequireProfileId(), ct);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Downloads the applicant's CV (company that received the application, or Admin).
+    /// Not available for withdrawn applications.
+    /// </summary>
+    [Authorize(Roles = Roles.CompanyOrAdmin)]
+    [HttpGet("{id:guid}/cv")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadCv(Guid id, CancellationToken ct)
+    {
+        var file = await _cvService.DownloadForApplicationAsync(id, User.ToCurrentUser(), ct);
+        Response.Headers.XContentTypeOptions = "nosniff";
+        return File(file.Content, file.ContentType, file.FileName);
     }
 }
