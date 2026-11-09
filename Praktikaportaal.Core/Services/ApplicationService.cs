@@ -1,6 +1,7 @@
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
+using Praktikaportaal.Core.Exceptions;
 using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Core.Interfaces.Repositories;
 
@@ -25,29 +26,26 @@ public class ApplicationService : IApplicationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<(bool Success, string? Error, ApplicationDto? Application)> ApplyAsync(
+    public async Task<ApplicationDto> ApplyAsync(
         Guid studentProfileId,
         CreateApplicationDto dto,
         CancellationToken ct = default)
     {
-        var internship = await _internships.GetByIdAsync(dto.InternshipId, ct);
-
-        if (internship == null)
-            return (false, "Internship listing not found.", null);
+        var internship = await _internships.GetByIdAsync(dto.InternshipId, ct)
+            ?? throw new NotFoundException("Internship", dto.InternshipId);
 
         if (internship.Status != InternshipStatus.Published)
-            return (false, "This internship is not currently accepting applications.", null);
+            throw new BusinessRuleException("This internship is not currently accepting applications.");
 
         if (internship.ApplicationDeadline.HasValue && internship.ApplicationDeadline.Value < DateTime.UtcNow)
-            return (false, "The application deadline for this internship has passed.", null);
+            throw new BusinessRuleException("The application deadline for this internship has passed.");
 
         // Business rule: one active (non-withdrawn) application per student per internship.
         if (await _applications.HasActiveApplicationAsync(studentProfileId, dto.InternshipId, ct))
-            return (false, "You already have an active application for this internship.", null);
+            throw new ConflictException("You already have an active application for this internship.");
 
-        var studentProfile = await _students.GetByIdAsync(studentProfileId, ct);
-        if (studentProfile == null)
-            return (false, "Student profile not found.", null);
+        var studentProfile = await _students.GetByIdAsync(studentProfileId, ct)
+            ?? throw new NotFoundException("Student profile", studentProfileId);
 
         var application = new Application
         {
@@ -63,7 +61,26 @@ public class ApplicationService : IApplicationService
         await _applications.AddAsync(application, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
-        return (true, null, MapToDto(application));
+        return MapToDto(application);
+    }
+
+    public async Task<ApplicationDto> GetByIdAsync(Guid applicationId, CurrentUser caller, CancellationToken ct = default)
+    {
+        var application = await _applications.GetByIdAsync(applicationId, ct)
+            ?? throw new NotFoundException("Application", applicationId);
+
+        bool allowed = caller.Role switch
+        {
+            UserRole.Admin => true,
+            UserRole.Student => application.StudentProfileId == caller.ProfileId,
+            UserRole.Company => application.Internship.CompanyProfileId == caller.ProfileId,
+            _ => false
+        };
+
+        if (!allowed)
+            throw new ForbiddenException();
+
+        return MapToDto(application);
     }
 
     public async Task<IReadOnlyList<ApplicationDto>> GetStudentApplicationsAsync(
@@ -79,46 +96,48 @@ public class ApplicationService : IApplicationService
         Guid companyProfileId,
         CancellationToken ct = default)
     {
-        if (!await _internships.IsOwnedByCompanyAsync(internshipId, companyProfileId, ct))
-            return [];
+        var internship = await _internships.GetByIdAsync(internshipId, ct)
+            ?? throw new NotFoundException("Internship", internshipId);
+
+        if (internship.CompanyProfileId != companyProfileId)
+            throw new ForbiddenException("Only the company that owns this internship can see its applications.");
 
         var list = await _applications.GetByInternshipAsync(internshipId, ct);
         return list.Select(MapToDto).ToList();
     }
 
-    public async Task<bool> UpdateApplicationStatusAsync(
+    public async Task UpdateApplicationStatusAsync(
         Guid applicationId,
         Guid companyProfileId,
         ApplicationStatus newStatus,
         CancellationToken ct = default)
     {
-        var application = await _applications.GetByIdAsync(applicationId, ct);
+        var application = await _applications.GetByIdAsync(applicationId, ct)
+            ?? throw new NotFoundException("Application", applicationId);
 
-        if (application == null)
-            return false;
-
-        // Only the company that owns the internship may change the status.
         if (application.Internship.CompanyProfileId != companyProfileId)
-            return false;
+            throw new ForbiddenException("Only the company that owns the internship can change the application status.");
 
         application.Status = newStatus;
         await _unitOfWork.SaveChangesAsync(ct);
-        return true;
     }
 
-    public async Task<bool> WithdrawApplicationAsync(
+    public async Task WithdrawApplicationAsync(
         Guid applicationId,
         Guid studentProfileId,
         CancellationToken ct = default)
     {
-        var application = await _applications.GetByIdAsync(applicationId, ct);
+        var application = await _applications.GetByIdAsync(applicationId, ct)
+            ?? throw new NotFoundException("Application", applicationId);
 
-        if (application == null || application.StudentProfileId != studentProfileId)
-            return false;
+        if (application.StudentProfileId != studentProfileId)
+            throw new ForbiddenException("You can only withdraw your own applications.");
+
+        if (application.Status is ApplicationStatus.Accepted or ApplicationStatus.Rejected or ApplicationStatus.Withdrawn)
+            throw new BusinessRuleException($"An application with status {application.Status} cannot be withdrawn.");
 
         application.Status = ApplicationStatus.Withdrawn;
         await _unitOfWork.SaveChangesAsync(ct);
-        return true;
     }
 
     private static ApplicationDto MapToDto(Application a) => new()
