@@ -40,6 +40,10 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // ── Infrastructure & Database ──────────────────────────────────────────────
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+// Uploaded files live outside wwwroot; a relative path is resolved against the content root.
+builder.Services.PostConfigure<FileStorageOptions>(o =>
+    o.RootPath = Path.GetFullPath(o.RootPath, builder.Environment.ContentRootPath));
+
 // ── Authentication & JWT ───────────────────────────────────────────────────
 // Token validation uses the same validated JwtOptions as token generation (no fallback secrets).
 builder.Services

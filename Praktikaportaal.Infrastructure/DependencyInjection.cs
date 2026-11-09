@@ -33,6 +33,11 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<FileStorageOptions>()
+            .Bind(configuration.GetSection(FileStorageOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         // Repositories (data access) + unit of work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -40,9 +45,11 @@ public static class DependencyInjection
         services.AddScoped<IApplicationRepository, ApplicationRepository>();
         services.AddScoped<IStudentProfileRepository, StudentProfileRepository>();
         services.AddScoped<ISkillRepository, SkillRepository>();
+        services.AddScoped<ICvRepository, CvRepository>();
 
         // Infrastructure services
         services.AddScoped<DbSeeder>();
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
 
@@ -50,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IInternshipService, InternshipService>();
         services.AddScoped<IStudentService, StudentService>();
+        services.AddScoped<ICvService, CvService>();
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<ISkillService, SkillService>();
 
