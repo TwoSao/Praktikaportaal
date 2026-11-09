@@ -49,6 +49,7 @@ public static class DependencyInjection
         // Business services (Core)
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IInternshipService, InternshipService>();
+        services.AddScoped<IStudentService, StudentService>();
         services.AddScoped<IApplicationService, ApplicationService>();
         services.AddScoped<ISkillService, SkillService>();
 
