@@ -84,17 +84,19 @@ public class ApplicationService : IApplicationService
         return MapToDto(application);
     }
 
-    public async Task<IReadOnlyList<ApplicationDto>> GetStudentApplicationsAsync(
+    public async Task<PagedResult<ApplicationDto>> GetStudentApplicationsAsync(
         Guid studentProfileId,
+        ApplicationQueryParameters query,
         CancellationToken ct = default)
     {
-        var list = await _applications.GetByStudentAsync(studentProfileId, ct);
-        return list.Select(MapToDto).ToList();
+        var (items, total) = await _applications.GetByStudentAsync(studentProfileId, query, ct);
+        return ToPage(items, total, query);
     }
 
-    public async Task<IReadOnlyList<ApplicationDto>> GetInternshipApplicationsAsync(
+    public async Task<PagedResult<ApplicationDto>> GetInternshipApplicationsAsync(
         Guid internshipId,
         CurrentUser caller,
+        ApplicationQueryParameters query,
         CancellationToken ct = default)
     {
         var internship = await _internships.GetByIdAsync(internshipId, ct)
@@ -105,8 +107,8 @@ public class ApplicationService : IApplicationService
         if (!allowed)
             throw new ForbiddenException("Only the company that owns this internship can see its applications.");
 
-        var list = await _applications.GetByInternshipAsync(internshipId, ct);
-        return list.Select(MapToDto).ToList();
+        var (items, total) = await _applications.GetByInternshipAsync(internshipId, query, ct);
+        return ToPage(items, total, query);
     }
 
     public async Task UpdateApplicationStatusAsync(
@@ -142,6 +144,14 @@ public class ApplicationService : IApplicationService
         application.Status = ApplicationStatus.Withdrawn;
         await _unitOfWork.SaveChangesAsync(ct);
     }
+
+    private static PagedResult<ApplicationDto> ToPage(IReadOnlyList<Application> items, int total, PagingParameters query) => new()
+    {
+        Items = items.Select(MapToDto).ToList(),
+        TotalCount = total,
+        Page = query.Page,
+        PageSize = query.PageSize
+    };
 
     private static ApplicationDto MapToDto(Application a) => new()
     {

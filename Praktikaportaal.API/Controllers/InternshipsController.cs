@@ -21,12 +21,22 @@ public class InternshipsController : ControllerBase
         _applicationService = applicationService;
     }
 
-    /// <summary>Returns published internships with optional search and remote filters.</summary>
+    /// <summary>
+    /// Searches published internships.
+    /// Example: <c>?field=IT&amp;location=Tallinn&amp;search=developer&amp;sort=Deadline&amp;page=1&amp;pageSize=10</c>.
+    /// The Worker uses <c>?createdAfter=2026-11-10T07:00:00Z</c> to find new listings.
+    /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<InternshipDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<InternshipDto>>> GetAll(
-        [FromQuery] string? search, [FromQuery] bool? isRemote, CancellationToken ct) =>
-        Ok(await _internshipService.GetPublishedInternshipsAsync(search, isRemote, ct));
+    [ProducesResponseType(typeof(PagedResult<InternshipDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<InternshipDto>>> GetAll([FromQuery] InternshipQueryParameters query, CancellationToken ct) =>
+        Ok(await _internshipService.SearchInternshipsAsync(query, ct));
+
+    /// <summary>Distinct fields and locations of published internships (for filter dropdowns).</summary>
+    [HttpGet("filters")]
+    [ProducesResponseType(typeof(InternshipFiltersDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<InternshipFiltersDto>> GetFilters(CancellationToken ct) =>
+        Ok(await _internshipService.GetFiltersAsync(ct));
 
     /// <summary>
     /// Returns an internship by id. Draft/closed listings are visible only to the owning company and admins.
@@ -105,12 +115,13 @@ public class InternshipsController : ControllerBase
         return CreatedAtAction(nameof(ApplicationsController.GetById), "Applications", new { id = created.Id }, created);
     }
 
-    /// <summary>Returns the applications received for this internship (owning Company or Admin).</summary>
+    /// <summary>Returns the applications received for this internship (owning Company or Admin), optionally by status.</summary>
     [Authorize(Roles = Roles.CompanyOrAdmin)]
     [HttpGet("{id:guid}/applications")]
-    [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<ApplicationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IReadOnlyList<ApplicationDto>>> GetApplications(Guid id, CancellationToken ct) =>
-        Ok(await _applicationService.GetInternshipApplicationsAsync(id, User.ToCurrentUser(), ct));
+    public async Task<ActionResult<PagedResult<ApplicationDto>>> GetApplications(
+        Guid id, [FromQuery] ApplicationQueryParameters query, CancellationToken ct) =>
+        Ok(await _applicationService.GetInternshipApplicationsAsync(id, User.ToCurrentUser(), query, ct));
 }
