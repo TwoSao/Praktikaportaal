@@ -1,49 +1,40 @@
-using Microsoft.EntityFrameworkCore;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Interfaces;
-using Praktikaportaal.Infrastructure.Persistence;
+using Praktikaportaal.Core.Interfaces.Repositories;
 
-namespace Praktikaportaal.Infrastructure.Services;
+namespace Praktikaportaal.Core.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly PraktikaportaalDbContext _context;
+    private readonly IUserRepository _users;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
 
     public AuthService(
-        PraktikaportaalDbContext context,
+        IUserRepository users,
+        IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         IJwtTokenService jwtTokenService)
     {
-        _context = context;
+        _users = users;
+        _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _jwtTokenService = jwtTokenService;
     }
 
     public async Task<AuthResultDto> RegisterStudentAsync(RegisterStudentDto dto, CancellationToken ct = default)
     {
-        string normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        string normalizedEmail = NormalizeEmail(dto.Email);
 
-        bool emailExists = await _context.Users
-            .AnyAsync(u => u.Email.ToLower() == normalizedEmail, ct);
-
-        if (emailExists)
+        if (await _users.EmailExistsAsync(normalizedEmail, ct))
             return AuthResultDto.Failed("User with this email already exists.");
 
-        var user = new User
-        {
-            Email = normalizedEmail,
-            PasswordHash = _passwordHasher.HashPassword(dto.Password),
-            FirstName = dto.FirstName.Trim(),
-            LastName = dto.LastName.Trim(),
-            Role = UserRole.Student,
-            IsActive = true
-        };
+        var user = CreateUser(normalizedEmail, dto.Password, dto.FirstName, dto.LastName, UserRole.Student);
 
-        var studentProfile = new StudentProfile
+        user.StudentProfile = new StudentProfile
         {
             UserId = user.Id,
             User = user,
@@ -54,48 +45,22 @@ public class AuthService : IAuthService
             Location = dto.Location?.Trim()
         };
 
-        user.StudentProfile = studentProfile;
+        await _users.AddAsync(user, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
-        await _context.Users.AddAsync(user, ct);
-        await _context.StudentProfiles.AddAsync(studentProfile, ct);
-        await _context.SaveChangesAsync(ct);
-
-        string token = _jwtTokenService.GenerateToken(user, studentProfile.Id);
-
-        var userDto = new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role,
-            ProfileId = studentProfile.Id
-        };
-
-        return AuthResultDto.Succeeded(token, userDto);
+        return Succeeded(user, user.StudentProfile.Id);
     }
 
     public async Task<AuthResultDto> RegisterCompanyAsync(RegisterCompanyDto dto, CancellationToken ct = default)
     {
-        string normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        string normalizedEmail = NormalizeEmail(dto.Email);
 
-        bool emailExists = await _context.Users
-            .AnyAsync(u => u.Email.ToLower() == normalizedEmail, ct);
-
-        if (emailExists)
+        if (await _users.EmailExistsAsync(normalizedEmail, ct))
             return AuthResultDto.Failed("User with this email already exists.");
 
-        var user = new User
-        {
-            Email = normalizedEmail,
-            PasswordHash = _passwordHasher.HashPassword(dto.Password),
-            FirstName = dto.FirstName.Trim(),
-            LastName = dto.LastName.Trim(),
-            Role = UserRole.Company,
-            IsActive = true
-        };
+        var user = CreateUser(normalizedEmail, dto.Password, dto.FirstName, dto.LastName, UserRole.Company);
 
-        var companyProfile = new CompanyProfile
+        user.CompanyProfile = new CompanyProfile
         {
             UserId = user.Id,
             User = user,
@@ -108,35 +73,15 @@ public class AuthService : IAuthService
             ContactPhone = dto.ContactPhone?.Trim()
         };
 
-        user.CompanyProfile = companyProfile;
+        await _users.AddAsync(user, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
 
-        await _context.Users.AddAsync(user, ct);
-        await _context.CompanyProfiles.AddAsync(companyProfile, ct);
-        await _context.SaveChangesAsync(ct);
-
-        string token = _jwtTokenService.GenerateToken(user, companyProfile.Id);
-
-        var userDto = new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role,
-            ProfileId = companyProfile.Id
-        };
-
-        return AuthResultDto.Succeeded(token, userDto);
+        return Succeeded(user, user.CompanyProfile.Id);
     }
 
     public async Task<AuthResultDto> LoginAsync(LoginDto dto, CancellationToken ct = default)
     {
-        string normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-
-        var user = await _context.Users
-            .Include(u => u.StudentProfile)
-            .Include(u => u.CompanyProfile)
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, ct);
+        var user = await _users.GetByEmailAsync(NormalizeEmail(dto.Email), ct);
 
         if (user == null)
             return AuthResultDto.Failed("Invalid email or password.");
@@ -144,57 +89,47 @@ public class AuthService : IAuthService
         if (!user.IsActive)
             return AuthResultDto.Failed("Account is deactivated. Please contact support.");
 
-        bool isPasswordValid = _passwordHasher.VerifyPassword(dto.Password, user.PasswordHash);
-        if (!isPasswordValid)
+        if (!_passwordHasher.VerifyPassword(dto.Password, user.PasswordHash))
             return AuthResultDto.Failed("Invalid email or password.");
 
-        Guid? profileId = user.Role switch
-        {
-            UserRole.Student => user.StudentProfile?.Id,
-            UserRole.Company => user.CompanyProfile?.Id,
-            _ => null
-        };
-
-        string token = _jwtTokenService.GenerateToken(user, profileId);
-
-        var userDto = new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role,
-            ProfileId = profileId
-        };
-
-        return AuthResultDto.Succeeded(token, userDto);
+        return Succeeded(user, GetProfileId(user));
     }
 
     public async Task<UserDto?> GetUserByIdAsync(Guid userId, CancellationToken ct = default)
     {
-        var user = await _context.Users
-            .Include(u => u.StudentProfile)
-            .Include(u => u.CompanyProfile)
-            .FirstOrDefaultAsync(u => u.Id == userId, ct);
-
-        if (user == null)
-            return null;
-
-        Guid? profileId = user.Role switch
-        {
-            UserRole.Student => user.StudentProfile?.Id,
-            UserRole.Company => user.CompanyProfile?.Id,
-            _ => null
-        };
-
-        return new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role,
-            ProfileId = profileId
-        };
+        var user = await _users.GetByIdAsync(userId, ct);
+        return user == null ? null : MapToDto(user, GetProfileId(user));
     }
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private User CreateUser(string email, string password, string firstName, string lastName, UserRole role) => new()
+    {
+        Email = email,
+        PasswordHash = _passwordHasher.HashPassword(password),
+        FirstName = firstName.Trim(),
+        LastName = lastName.Trim(),
+        Role = role,
+        IsActive = true
+    };
+
+    private static Guid? GetProfileId(User user) => user.Role switch
+    {
+        UserRole.Student => user.StudentProfile?.Id,
+        UserRole.Company => user.CompanyProfile?.Id,
+        _ => null
+    };
+
+    private AuthResultDto Succeeded(User user, Guid? profileId) =>
+        AuthResultDto.Succeeded(_jwtTokenService.GenerateToken(user, profileId), MapToDto(user, profileId));
+
+    private static UserDto MapToDto(User user, Guid? profileId) => new()
+    {
+        Id = user.Id,
+        Email = user.Email,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        Role = user.Role,
+        ProfileId = profileId
+    };
 }
