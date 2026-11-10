@@ -26,7 +26,7 @@ Lahendus koosneb seitsmest projektist. Sõltuvused kulgevad ainult sissepoole.
  Brauser ──► Praktikaportaal.Web (MVC) ──HTTP──►┐
  Worker  ─────────────────────────────HTTP─────►├─► Praktikaportaal.API ─► Infrastructure ─► Core
  Brauser ◄──WebSocket (proxy Web kaudu)◄────────┘                │
-                                                                 └─► SQL Server (LocalDB)
+                                                                 └─► MariaDB (zone.ee)
 ```
 
 | Projekt | Vastutus |
@@ -88,7 +88,7 @@ kordusjooks ei saada duplikaate. Workeril ei ole viidet `Core` ega `Infrastructu
 
 ## 3. Andmebaas
 
-SQL Server (LocalDB arenduses), EF Core Code First, migratsioonid projektis `Praktikaportaal.Infrastructure`.
+MariaDB 11 (zone.ee; sobib ka MySQL 8), EF Core 9 + Pomelo, Code First, migratsioonid projektis `Praktikaportaal.Infrastructure`.
 Kõik olemid (v.a. ühendustabelid) pärivad `BaseEntity`: `Id` (Guid), `CreatedAt`, `UpdatedAt`, `IsDeleted`.
 
 ```
@@ -161,7 +161,13 @@ Veavastuse näide:
 
 ## 5. Paigaldus ja käivitamine
 
-Nõuded: .NET 10 SDK, SQL Server LocalDB (või muu SQL Server).
+Nõuded: .NET 10 SDK ja MariaDB/MySQL andmebaas. Ühenduse sõne pannakse `user-secrets`'i, mitte gitti:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=<host>;Port=3306;Database=<andmebaas>;User=<kasutaja>;Password=<parool>;SslMode=Preferred" --project Praktikaportaal.API
+```
+
+Kasutajal peavad olema andmebaasi kõik õigused ja kaugühenduse korral peab arvuti IP olema hostingu paneelis lubatud.
 
 ```bash
 git clone https://github.com/TwoSao/Praktikaportaal.git
@@ -190,7 +196,7 @@ Kui Windows Smart App Control blokeerib `.exe` faili, käivita `dotnet <projekt>
 
 | Seadistus | Kus | Selgitus |
 |---|---|---|
-| `ConnectionStrings:DefaultConnection` | API | SQL Serveri ühendus |
+| `ConnectionStrings:DefaultConnection` | API | MariaDB/MySQL ühendus (user-secrets või `ConnectionStrings__DefaultConnection`) |
 | `Jwt:Secret` | API | vähemalt 32 baiti; tootmises keskkonnamuutuja `Jwt__Secret` või user-secrets |
 | `Cors:AllowedOrigins` | API | lubatud päritolud |
 | `FileStorage:RootPath` | API | CV-de kaust |
@@ -216,14 +222,14 @@ docker run -p 8080:8080 -e ConnectionStrings__DefaultConnection="..." -e Jwt__Se
 - **Worker testid** – ajastus, korduskäivitus, 401 korral uuesti sisselogimine;
 - **Web testid** – MVC lehed mõnitatud `IApiClient`-iga, WebSocket proxy päris Kestreli vastu.
 
-Lisaks kontrolliti süsteemi käsitsi töötava API, veebilehe ja SQL Serveriga ning reaalajas uuendust päris Chrome'is
+Lisaks kontrolliti süsteemi käsitsi töötava API, veebilehe ja MariaDB-ga ning reaalajas uuendust päris Chrome'is
 (sh automaatne taasühendus pärast API taaskäivitust). Päringukogumikud: `.http` fail ja Postman.
 
 ## 7. Nõuete kontroll
 
 | Nõue | Staatus | Kus |
 |---|---|---|
-| ASP.NET Core Web API, EF Core, SQL Server | ✔ | `Praktikaportaal.API`, `Infrastructure` |
+| ASP.NET Core Web API, EF Core, MariaDB/MySQL | ✔ | `Praktikaportaal.API`, `Infrastructure` |
 | Repository + teenuste kiht | ✔ | `Core/Services`, `Infrastructure/Persistence/Repositories` |
 | JWT, rollid Student/Company/Admin/Service | ✔ | `AuthController`, `JwtTokenService` |
 | ProblemDetails + Serilog | ✔ | `GlobalExceptionHandler`, `Program.cs` |
