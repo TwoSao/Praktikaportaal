@@ -24,11 +24,11 @@ public static class WebExtensions
             // "Password" or "$.skills[0].skillId" -> use the last simple segment as the model key
             string key = field.Contains('.') ? field[(field.LastIndexOf('.') + 1)..] : field;
             foreach (string message in messages)
-                modelState.AddModelError(modelState.ContainsKey(key) ? key : string.Empty, message);
+                modelState.AddModelError(modelState.ContainsKey(key) ? key : string.Empty, ApiMessages.Translate(message));
         }
 
         if (ex.Errors.Count == 0)
-            modelState.AddModelError(string.Empty, ex.Detail ?? ex.Title);
+            modelState.AddModelError(string.Empty, ex.UserMessage());
     }
 
     /// <summary>Builds the route values of a page link: the current query string with another <c>page</c>.</summary>
