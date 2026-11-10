@@ -25,6 +25,7 @@ public class ApplicationServiceTests
         new ApplicationRepository(context),
         new InternshipRepository(context),
         new StudentProfileRepository(context),
+        new NotificationRepository(context),
         new UnitOfWork(context));
 
     private async Task<(User studentUser, StudentProfile student, CompanyProfile company, Internship internship)> SeedDataAsync(

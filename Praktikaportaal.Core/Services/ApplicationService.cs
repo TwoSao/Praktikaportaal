@@ -12,17 +12,20 @@ public class ApplicationService : IApplicationService
     private readonly IApplicationRepository _applications;
     private readonly IInternshipRepository _internships;
     private readonly IStudentProfileRepository _students;
+    private readonly INotificationRepository _notifications;
     private readonly IUnitOfWork _unitOfWork;
 
     public ApplicationService(
         IApplicationRepository applications,
         IInternshipRepository internships,
         IStudentProfileRepository students,
+        INotificationRepository notifications,
         IUnitOfWork unitOfWork)
     {
         _applications = applications;
         _internships = internships;
         _students = students;
+        _notifications = notifications;
         _unitOfWork = unitOfWork;
     }
 
@@ -60,6 +63,15 @@ public class ApplicationService : IApplicationService
         };
 
         await _applications.AddAsync(application, ct);
+
+        // In-app notification for the company (saved in the same transaction as the application).
+        await _notifications.AddAsync(new Notification
+        {
+            UserId = internship.CompanyProfile.UserId,
+            Title = "New application",
+            Message = $"{studentProfile.User.FirstName} {studentProfile.User.LastName} applied for \"{internship.Title}\"."
+        }, ct);
+
         await _unitOfWork.SaveChangesAsync(ct);
 
         return MapToDto(application);
@@ -133,6 +145,16 @@ public class ApplicationService : IApplicationService
         }
 
         application.Status = newStatus;
+
+        // Tell the student what happened to their application.
+        await _notifications.AddAsync(new Notification
+        {
+            UserId = application.StudentProfile.UserId,
+            Title = "Application status updated",
+            Message = $"Your application for \"{application.Internship.Title}\" at " +
+                      $"{application.Internship.CompanyProfile.CompanyName} is now: {newStatus}."
+        }, ct);
+
         await _unitOfWork.SaveChangesAsync(ct);
     }
 
