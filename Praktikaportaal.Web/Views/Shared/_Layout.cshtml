@@ -1,55 +1,33 @@
+@using System.Security.Claims
 <!DOCTYPE html>
 <html lang="et">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Praktikaportaal (TTHK)</title>
+    <title>@ViewData["Title"] - Praktikaportaal</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <style>
-        .badge-role { font-size: 0.8rem; vertical-align: middle; }
-        .hero-banner { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; border-radius: 12px; }
-        .card-internship { transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out; }
-        .card-internship:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
-    </style>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
-                    🎓 Praktikaportaal
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">🎓 Praktikaportaal</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Ava menüü">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="mainNavbar">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Internships" asp-action="Index">Praktikakohad</a>
-                        </li>
-                        @if (User.IsInRole("Student"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Student" asp-action="Dashboard">Minu avaldused</a>
-                            </li>
-                        }
-                        @if (User.IsInRole("Company"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Company" asp-action="Dashboard">Töölaud</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-warning fw-semibold" asp-controller="Company" asp-action="Create">+ Lisa kuulutus</a>
-                            </li>
-                        }
+                        <li class="nav-item"><a class="nav-link" asp-controller="Internships" asp-action="Index">Praktikakohad</a></li>
+                        @await RenderSectionAsync("NavItems", required: false)
                     </ul>
 
-                    <ul class="navbar-nav ms-auto align-items-center">
+                    <ul class="navbar-nav ms-auto align-items-lg-center">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item me-3 text-light">
-                                <span class="badge bg-primary badge-role me-1">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
+                            <li class="nav-item me-lg-3 text-light small">
+                                <span class="badge bg-primary badge-role me-1">@RoleLabel(User.FindFirstValue(ClaimTypes.Role))</span>
                                 <span>@User.Identity.Name</span>
                             </li>
                             <li class="nav-item">
@@ -64,11 +42,10 @@
                                 <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Login">Logi sisse</a>
                             </li>
                             <li class="nav-item dropdown">
-                                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="registerDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Registreeru
-                                </button>
+                                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="registerDropdown"
+                                        data-bs-toggle="dropdown" aria-expanded="false">Registreeru</button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="registerDropdown">
-                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="RegisterStudent">Õppurina (TTHK)</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="RegisterStudent">Õppurina</a></li>
                                     <li><a class="dropdown-item" asp-controller="Account" asp-action="RegisterCompany">Ettevõttena</a></li>
                                 </ul>
                             </li>
@@ -79,19 +56,19 @@
         </nav>
     </header>
 
-    <div class="container">
-        @if (TempData["SuccessMessage"] != null)
+    <div class="container mt-4 flex-grow-1">
+        @if (TempData["SuccessMessage"] is string success)
         {
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                ✅ @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                @success
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sulge"></button>
             </div>
         }
-        @if (TempData["ErrorMessage"] != null)
+        @if (TempData["ErrorMessage"] is string error)
         {
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                ❌ @TempData["ErrorMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                @error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sulge"></button>
             </div>
         }
 
@@ -100,9 +77,12 @@
         </main>
     </div>
 
+    @* Toasts (live notifications etc.) are added here by scripts *@
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
     <footer class="border-top py-3 text-muted bg-light mt-auto">
         <div class="container text-center">
-            <small>&copy; 2026 Praktikaportaal — Tallinna Tööstushariduskeskus (TTHK) | Noorem tarkvaraarendaja eriala</small>
+            <small>&copy; 2026 Praktikaportaal — Programmeerimine ja hajusrakendused (koolitöö)</small>
         </div>
     </footer>
 
@@ -112,3 +92,13 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+@functions {
+    private static string RoleLabel(string? role) => role switch
+    {
+        "Student" => "Õppur",
+        "Company" => "Ettevõte",
+        "Admin" => "Admin",
+        _ => role ?? ""
+    };
+}
