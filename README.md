@@ -148,7 +148,7 @@ List endpoints return `{ items, totalCount, page, pageSize }` and accept `page` 
 | GET | `/api/internships/{id}/applications` | Company (owner), Admin |
 | GET | `/api/applications/my` | Student |
 | GET | `/api/applications/{id}` | owner student, owner company, Admin |
-| PATCH | `/api/applications/{id}/status` | Company (owner), Admin |
+| PATCH | `/api/applications/{id}/status` | Company (owner) |
 | POST | `/api/applications/{id}/withdraw` | Student (owner) |
 | GET | `/api/applications/{id}/cv` | Company (owner), Admin |
 | GET / PUT | `/api/students/me` | Student |
