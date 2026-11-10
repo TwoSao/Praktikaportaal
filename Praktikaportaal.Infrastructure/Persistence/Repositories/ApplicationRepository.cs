@@ -14,7 +14,11 @@ public class ApplicationRepository : IApplicationRepository
         _context = context;
     }
 
+    // Applications stay visible even if their internship was soft-deleted (application history),
+    // so the global filters are ignored here and only the application's own flag is checked.
     private IQueryable<Application> WithDetails() => _context.Applications
+        .IgnoreQueryFilters()
+        .Where(a => !a.IsDeleted)
         .Include(a => a.Internship)
             .ThenInclude(i => i.CompanyProfile)
         .Include(a => a.StudentProfile)
