@@ -22,10 +22,12 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Logging: Serilog (console + rolling file), configured in the "Serilog" section ──
+// preserveStaticLogger: several hosts can live in one process (integration tests); with the default the
+// first host freezes the shared bootstrap logger and the next one fails with "The logger is already frozen".
 builder.Services.AddSerilog((services, lc) => lc
     .ReadFrom.Configuration(builder.Configuration)
     .ReadFrom.Services(services)
-    .Enrich.FromLogContext());
+    .Enrich.FromLogContext(), preserveStaticLogger: true);
 
 // ── Error handling: RFC 7807 ProblemDetails for every error response ──────
 builder.Services.AddProblemDetails(options =>
