@@ -120,4 +120,39 @@ public class InternshipsController : Controller
         TempData["ErrorMessage"] = "See praktikakoht ei võta avaldusi vastu (tähtaeg möödas või kuulutus suletud).";
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    // ── manage (owning company) / moderate (admin) ──────────────────────────
+
+    [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Company) + "," + nameof(UserRole.Admin))]
+    public async Task<IActionResult> SetStatus(Guid id, InternshipStatus status, string? returnTo = null)
+    {
+        try
+        {
+            await _api.SetInternshipStatusAsync(id, status); // the API checks ownership / admin
+            TempData["SuccessMessage"] = $"Kuulutuse staatus: {status.Label()}.";
+        }
+        catch (ApiException ex) when (ex.IsUserError)
+        {
+            TempData["ErrorMessage"] = ex.UserMessage();
+        }
+
+        return BackTo(returnTo, id);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Company) + "," + nameof(UserRole.Admin))]
+    public async Task<IActionResult> Delete(Guid id, string? returnTo = null)
+    {
+        await _api.DeleteInternshipAsync(id);
+        TempData["SuccessMessage"] = "Kuulutus on kustutatud.";
+        return User.IsInRole(nameof(UserRole.Company)) ? RedirectToAction("Index", "Company") : RedirectToAction(nameof(Index));
+    }
+
+    private IActionResult BackTo(string? returnTo, Guid id) => returnTo switch
+    {
+        "details" => RedirectToAction(nameof(Details), new { id }),
+        _ when User.IsInRole(nameof(UserRole.Company)) => RedirectToAction("Index", "Company"),
+        _ => RedirectToAction(nameof(Details), new { id })
+    };
 }

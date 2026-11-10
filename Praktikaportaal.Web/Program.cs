@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Praktikaportaal.Web.Services;
+using Praktikaportaal.Web.WebSockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,20 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(24); // replaced at login by the JWT's own expiry
         options.SlidingExpiration = false;
+
+        // A WebSocket client cannot follow a redirect to the login page: answer with plain status codes.
+        options.Events.OnRedirectToLogin = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/ws")) ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            else ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/ws")) ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            else ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -31,6 +46,10 @@ builder.Services.AddHttpClient<IApiClient, ApiClient>(client =>
         client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
     })
     .AddHttpMessageHandler<BearerTokenHandler>();
+
+// Live updates: the browser connects to this site, the site relays the API's WebSocket (see ApplicationsSocketProxy).
+builder.Services.Configure<SocketProxyOptions>(o => o.ApiBaseUrl = apiBaseUrl);
+builder.Services.AddSingleton<IUpstreamSocketConnector, ClientWebSocketConnector>();
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -53,6 +72,9 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
+app.MapApplicationsProxy();   // /ws/applications
 
 app.MapControllerRoute(
     name: "default",
