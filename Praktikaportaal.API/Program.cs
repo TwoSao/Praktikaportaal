@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Praktikaportaal.API.ErrorHandling;
+using Praktikaportaal.API.WebSockets;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Infrastructure;
 using Praktikaportaal.Infrastructure.Options;
@@ -56,6 +57,18 @@ builder.Services
     {
         var jwt = jwtOptions.Value;
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+
+        // Browsers cannot send an Authorization header on a WebSocket, so /ws/* accepts ?access_token=.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                string? token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && ApplicationsSocketEndpoint.IsSocketPath(ctx.HttpContext.Request.Path))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -70,6 +83,10 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+
+// ── Real-time: WebSocket connections + the notifier the services layer calls ─
+builder.Services.AddSingleton<ConnectionGroups>();
+builder.Services.AddSingleton<Praktikaportaal.Core.Interfaces.IApplicationNotifier, WebSocketApplicationNotifier>();
 
 // ── CORS: only the configured client origins (Web MVC dev server etc.) ────
 const string ClientCorsPolicy = "Clients";
@@ -145,6 +162,12 @@ app.UseCors(ClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
+
 app.MapControllers();
+app.MapApplicationsSocket();   // /ws/applications
 
 await app.RunAsync();
+
+/// <summary>Makes the entry point visible to WebApplicationFactory in integration tests.</summary>
+public partial class Program;
