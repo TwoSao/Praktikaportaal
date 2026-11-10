@@ -310,3 +310,27 @@ public class BearerTokenHandlerTests
         Assert.Null(await SendAsAsync(null));
     }
 }
+
+public class ApiMessagesTests
+{
+    [Theory]
+    [InlineData("You already have an active application for this internship.", "Sul on sellele praktikakohale juba aktiivne avaldus.")]
+    [InlineData("The application deadline for this internship has passed.", "Avalduste esitamise tähtaeg on möödas.")]
+    [InlineData("User with this email already exists.", "Selle e-posti aadressiga kasutaja on juba olemas.")]
+    [InlineData("The file is too large. Maximum size is 5 MB.", "Fail on liiga suur. Maksimaalne suurus on 5 MB.")]
+    [InlineData("Only PDF (.pdf) and Word (.docx) files are allowed.", "Lubatud on ainult PDF- (.pdf) ja Word-failid (.docx).")]
+    public void KnownApiMessages_AreTranslated(string english, string estonian) => Assert.Equal(estonian, ApiMessages.Translate(english));
+
+    [Fact]
+    public void UnknownMessages_FallBackToTheApiText() =>
+        Assert.Equal("Something new happened.", ApiMessages.Translate("Something new happened."));
+
+    [Fact]
+    public void UserMessage_PrefersDetailOverTitle()
+    {
+        var ex = new ApiException(HttpStatusCode.Conflict, "Conflict", "You already have an active application for this internship.");
+
+        Assert.Equal("Sul on sellele praktikakohale juba aktiivne avaldus.", ex.UserMessage());
+        Assert.Equal("Just a title", new ApiException(HttpStatusCode.BadRequest, "Just a title", null).UserMessage());
+    }
+}
