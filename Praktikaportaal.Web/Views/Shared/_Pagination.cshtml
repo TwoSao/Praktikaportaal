@@ -1,0 +1,35 @@
+@using Praktikaportaal.Web.Services
+@model PaginationModel
+@* Page links keep all other query-string values (filters, sort...) and only change "page". *@
+@if (Model.TotalPages > 1)
+{
+    int first = Math.Max(1, Model.Page - 2);
+    int last = Math.Min(Model.TotalPages, Model.Page + 2);
+
+    <nav aria-label="Lehekülgede valik" class="mt-4">
+        <ul class="pagination justify-content-center flex-wrap">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action(null, null, Context.Request.Query.WithPage(Model.Page - 1))">« Eelmine</a>
+            </li>
+            @if (first > 1)
+            {
+                <li class="page-item"><a class="page-link" href="@Url.Action(null, null, Context.Request.Query.WithPage(1))">1</a></li>
+                @if (first > 2) { <li class="page-item disabled"><span class="page-link">…</span></li> }
+            }
+            @for (int p = first; p <= last; p++)
+            {
+                <li class="page-item @(p == Model.Page ? "active" : "")">
+                    <a class="page-link" href="@Url.Action(null, null, Context.Request.Query.WithPage(p))">@p</a>
+                </li>
+            }
+            @if (last < Model.TotalPages)
+            {
+                @if (last < Model.TotalPages - 1) { <li class="page-item disabled"><span class="page-link">…</span></li> }
+                <li class="page-item"><a class="page-link" href="@Url.Action(null, null, Context.Request.Query.WithPage(Model.TotalPages))">@Model.TotalPages</a></li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action(null, null, Context.Request.Query.WithPage(Model.Page + 1))">Järgmine »</a>
+            </li>
+        </ul>
+    </nav>
+}

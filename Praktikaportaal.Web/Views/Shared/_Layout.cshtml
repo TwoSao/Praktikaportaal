@@ -1,50 +1,104 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="et">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Praktikaportaal.Web</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Praktikaportaal</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Praktikaportaal.Web.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Praktikaportaal.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">🎓 Praktikaportaal</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Ava menüü">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" asp-controller="Internships" asp-action="Index">Praktikakohad</a></li>
+                        @await RenderSectionAsync("NavItems", required: false)
+                    </ul>
+
+                    <ul class="navbar-nav ms-auto align-items-lg-center">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item me-lg-3 text-light small">
+                                <span class="badge bg-primary badge-role me-1">@RoleLabel(User.FindFirstValue(ClaimTypes.Role))</span>
+                                <span>@User.Identity.Name</span>
+                            </li>
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-light btn-sm">Logi välja</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Login">Logi sisse</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="registerDropdown"
+                                        data-bs-toggle="dropdown" aria-expanded="false">Registreeru</button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="registerDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="RegisterStudent">Õppurina</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="RegisterCompany">Ettevõttena</a></li>
+                                </ul>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+    <div class="container mt-4 flex-grow-1">
+        @if (TempData["SuccessMessage"] is string success)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @success
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sulge"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string error)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sulge"></button>
+            </div>
+        }
+
+        <main role="main" class="pb-5">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Praktikaportaal.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    @* Toasts (live notifications etc.) are added here by scripts *@
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <footer class="border-top py-3 text-muted bg-light mt-auto">
+        <div class="container text-center">
+            <small>&copy; 2026 Praktikaportaal — Programmeerimine ja hajusrakendused (koolitöö)</small>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+@functions {
+    private static string RoleLabel(string? role) => role switch
+    {
+        "Student" => "Õppur",
+        "Company" => "Ettevõte",
+        "Admin" => "Admin",
+        _ => role ?? ""
+    };
+}
