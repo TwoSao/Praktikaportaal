@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
@@ -26,6 +28,7 @@ public class ApplicationServiceTests
         new InternshipRepository(context),
         new StudentProfileRepository(context),
         new NotificationRepository(context),
+        Mock.Of<IApplicationNotifier>(),
         new UnitOfWork(context));
 
     private async Task<(User studentUser, StudentProfile student, CompanyProfile company, Internship internship)> SeedDataAsync(
