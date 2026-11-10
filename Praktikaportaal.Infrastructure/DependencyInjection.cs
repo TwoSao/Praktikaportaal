@@ -23,7 +23,7 @@ public static class DependencyInjection
         if (!string.IsNullOrEmpty(connectionString))
         {
             services.AddDbContext<PraktikaportaalDbContext>(options =>
-                options.UseSqlServer(connectionString, sql =>
+                options.UseMySql(connectionString, new MariaDbServerVersion(new Version(11, 4, 0)), sql =>
                     sql.MigrationsAssembly(typeof(PraktikaportaalDbContext).Assembly.FullName)));
         }
 

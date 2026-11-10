@@ -39,7 +39,7 @@ sorted by overlap and then by newest. The response also lists matched and missin
 
 ## Tech stack
 
-C# / .NET 10 · ASP.NET Core Web API · ASP.NET Core MVC (Razor) · Entity Framework Core 10 · SQL Server (LocalDB)
+C# / .NET 10 · ASP.NET Core Web API · ASP.NET Core MVC (Razor) · Entity Framework Core 9 (Pomelo) · MariaDB / MySQL
 · JWT bearer · Serilog · Swashbuckle (Swagger) · xUnit + Moq · Docker (API)
 
 ## Solution layout
@@ -59,8 +59,15 @@ HTTP contract.
 
 ## Getting started
 
-Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download) and SQL Server LocalDB (installed with Visual Studio)
-or any SQL Server (change `ConnectionStrings:DefaultConnection`).
+Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download) and a MariaDB (11.x) or MySQL 8 database, for example the one on zone.ee.
+Keep the connection string out of git:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+  "Server=<host>;Port=3306;Database=<db>;User=<user>;Password=<password>;SslMode=Preferred" --project Praktikaportaal.API
+```
+
+The database user needs full rights on that database (migrations create the tables). With a remote host, allow your IP in the hosting panel first.
 
 ```bash
 git clone https://github.com/TwoSao/Praktikaportaal.git
@@ -77,7 +84,7 @@ dotnet run --project Praktikaportaal.API
 
 With `Database:MigrateAndSeedOnStartup=true` (set in `appsettings.Development.json`) the API applies migrations and seeds demo data on start; in other environments run `dotnet ef database update -p Praktikaportaal.Infrastructure -s Praktikaportaal.API`. Swagger: <http://localhost:5117/swagger>.
 
-To start from a clean database: `dotnet ef database drop -p Praktikaportaal.Infrastructure -s Praktikaportaal.API` and start the API again.
+To start from a clean database (this deletes all data, so never run it against a shared server by accident): `dotnet ef database drop -p Praktikaportaal.Infrastructure -s Praktikaportaal.API` and start the API again.
 
 ### 2. Web site (http://localhost:5026)
 
@@ -111,7 +118,7 @@ DOTNET_ENVIRONMENT=Development dotnet run --project Praktikaportaal.Worker -- --
 
 | Setting | Where | Notes |
 |---|---|---|
-| `ConnectionStrings:DefaultConnection` | API | SQL Server connection string |
+| `ConnectionStrings:DefaultConnection` | API | MariaDB/MySQL connection string (use user-secrets or `ConnectionStrings__DefaultConnection`) |
 | `Jwt:Secret` | API | **Required**, at least 32 bytes. Committed only for Development; in production use environment variable `Jwt__Secret` or user-secrets |
 | `Jwt:Issuer`, `Jwt:Audience`, `Jwt:ExpiresInHours` | API | defaults in `appsettings.json` |
 | `Cors:AllowedOrigins` | API | list of allowed browser origins |
@@ -184,7 +191,7 @@ tests on an in-memory host (auth, roles, paging, ProblemDetails, WebSocket), Wor
 ```bash
 docker build -f Praktikaportaal.API/Dockerfile -t praktikaportaal-api .
 docker run -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production \
-  -e ConnectionStrings__DefaultConnection="<sql server connection string>" \
+  -e ConnectionStrings__DefaultConnection="<mariadb connection string>" \
   -e Jwt__Secret="<at least 32 bytes>" praktikaportaal-api
 ```
 
