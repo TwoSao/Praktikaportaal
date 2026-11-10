@@ -429,3 +429,7 @@ FodyWeavers.xsd
 
 # Uploaded files (CVs)
 **/App_Data/
+
+# Worker state
+**/worker-state.json
+**/worker-state.json.tmp
