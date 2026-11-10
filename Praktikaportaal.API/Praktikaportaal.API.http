@@ -1,6 +1,385 @@
-@Praktikaportaal.API_HostAddress = http://localhost:5117
+### Praktikaportaal API - request collection
+### Works with the VS Code "REST Client" extension and Visual Studio / Rider .http support.
+### Start the API first:  dotnet run --project Praktikaportaal.API   (Development seeds the demo users below)
+### Run the requests top to bottom: logins store the tokens, later requests reuse ids captured earlier.
 
-GET {{Praktikaportaal.API_HostAddress}}/weatherforecast/
-Accept: application/json
+@host = http://localhost:5117
+@json = application/json
+
+@adminEmail = admin@praktikaportaal.ee
+@adminPassword = Admin123!
+@serviceEmail = service@praktikaportaal.ee
+@servicePassword = Service123!
+@companyEmail = hr@nordicsoftware.ee
+@companyPassword = Company123!
+@studentEmail = mari.tamm@student.ee
+@studentPassword = Student123!
+
+###############################################################################
+# AUTH
+###############################################################################
+
+### Register a new student (returns a JWT)
+POST {{host}}/api/auth/register-student
+Content-Type: {{json}}
+
+{
+  "email": "new.student@example.ee",
+  "password": "Student123!",
+  "firstName": "Kati",
+  "lastName": "Kask",
+  "schoolName": "Tallinna Tehnikakool",
+  "studyProgram": "Informatics",
+  "course": 2,
+  "phoneNumber": "+3725551234",
+  "location": "Tallinn"
+}
+
+### Register a new company
+POST {{host}}/api/auth/register-company
+Content-Type: {{json}}
+
+{
+  "email": "hr@example-company.ee",
+  "password": "Company123!",
+  "firstName": "Peeter",
+  "lastName": "Puu",
+  "companyName": "Example OÜ",
+  "registrationCode": "12345678",
+  "description": "Software company",
+  "website": "https://example.ee",
+  "address": "Tallinn",
+  "contactEmail": "info@example.ee",
+  "contactPhone": "+3725550000"
+}
+
+### Login as admin
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: {{json}}
+
+{ "email": "{{adminEmail}}", "password": "{{adminPassword}}" }
 
 ###
+@adminToken = {{loginAdmin.response.body.$.token}}
+
+### Login as service account (used by the Worker)
+# @name loginService
+POST {{host}}/api/auth/login
+Content-Type: {{json}}
+
+{ "email": "{{serviceEmail}}", "password": "{{servicePassword}}" }
+
+###
+@serviceToken = {{loginService.response.body.$.token}}
+
+### Login as company
+# @name loginCompany
+POST {{host}}/api/auth/login
+Content-Type: {{json}}
+
+{ "email": "{{companyEmail}}", "password": "{{companyPassword}}" }
+
+###
+@companyToken = {{loginCompany.response.body.$.token}}
+
+### Login as student
+# @name loginStudent
+POST {{host}}/api/auth/login
+Content-Type: {{json}}
+
+{ "email": "{{studentEmail}}", "password": "{{studentPassword}}" }
+
+###
+@studentToken = {{loginStudent.response.body.$.token}}
+@studentUserId = {{loginStudent.response.body.$.user.id}}
+@studentProfileId = {{loginStudent.response.body.$.user.profileId}}
+
+### Wrong password -> 401 ProblemDetails
+POST {{host}}/api/auth/login
+Content-Type: {{json}}
+
+{ "email": "{{studentEmail}}", "password": "wrong" }
+
+### Current user
+GET {{host}}/api/auth/me
+Authorization: Bearer {{studentToken}}
+
+###############################################################################
+# SKILLS
+###############################################################################
+
+### List skills (public)
+# @name skills
+GET {{host}}/api/skills
+
+###
+@skillId = {{skills.response.body.$[0].id}}
+
+### Create a skill (company or admin)
+POST {{host}}/api/skills
+Authorization: Bearer {{adminToken}}
+Content-Type: {{json}}
+
+{ "name": "Kubernetes", "description": "Container orchestration" }
+
+###############################################################################
+# INTERNSHIPS
+###############################################################################
+
+### List: search + filters + sorting + paging (public)
+GET {{host}}/api/internships?search=developer&field=IT&location=Tallinn&isRemote=false&sort=Newest&page=1&pageSize=10
+
+### Sorting options: Newest, Oldest, Deadline, Title
+GET {{host}}/api/internships?sort=Deadline&page=1&pageSize=5
+
+### Available fields and locations for filter dropdowns
+GET {{host}}/api/internships/filters
+
+### Internship details
+# @name firstInternship
+GET {{host}}/api/internships?pageSize=1
+
+###
+@internshipId = {{firstInternship.response.body.$.items[0].id}}
+
+###
+GET {{host}}/api/internships/{{internshipId}}
+
+### Invalid paging -> 400 ProblemDetails
+GET {{host}}/api/internships?page=0&pageSize=1000
+
+### Company: my internships (includes drafts)
+GET {{host}}/api/internships/my
+Authorization: Bearer {{companyToken}}
+
+### Company: create internship
+# @name createInternship
+POST {{host}}/api/internships
+Authorization: Bearer {{companyToken}}
+Content-Type: {{json}}
+
+{
+  "title": "Junior .NET Developer Intern",
+  "description": "Work on ASP.NET Core APIs with an experienced team.",
+  "field": "IT",
+  "requirements": "Basic C# knowledge",
+  "location": "Tallinn",
+  "startDate": "2027-06-01T00:00:00Z",
+  "endDate": "2027-08-31T00:00:00Z",
+  "applicationDeadline": "2027-04-30T00:00:00Z",
+  "isRemote": false,
+  "skillIds": ["{{skillId}}"]
+}
+
+###
+@newInternshipId = {{createInternship.response.body.$.id}}
+
+### Company: update internship
+PUT {{host}}/api/internships/{{newInternshipId}}
+Authorization: Bearer {{companyToken}}
+Content-Type: {{json}}
+
+{
+  "title": "Junior .NET Developer Intern (updated)",
+  "description": "Work on ASP.NET Core APIs with an experienced team.",
+  "field": "IT",
+  "requirements": "Basic C# knowledge",
+  "location": "Tallinn",
+  "startDate": "2027-06-01T00:00:00Z",
+  "endDate": "2027-08-31T00:00:00Z",
+  "applicationDeadline": "2027-04-30T00:00:00Z",
+  "isRemote": true,
+  "skillIds": ["{{skillId}}"]
+}
+
+### Company/admin: change internship status (Draft, Published, Closed, Archived)
+PATCH {{host}}/api/internships/{{newInternshipId}}/status
+Authorization: Bearer {{companyToken}}
+Content-Type: {{json}}
+
+{ "status": "Published" }
+
+### Validation error: end date before start date -> 400
+POST {{host}}/api/internships
+Authorization: Bearer {{companyToken}}
+Content-Type: {{json}}
+
+{
+  "title": "Bad dates", "description": "x", "field": "IT",
+  "startDate": "2027-08-01T00:00:00Z", "endDate": "2027-06-01T00:00:00Z"
+}
+
+### Student cannot create internships -> 403
+POST {{host}}/api/internships
+Authorization: Bearer {{studentToken}}
+Content-Type: {{json}}
+
+{ "title": "x", "description": "x", "field": "IT" }
+
+###############################################################################
+# APPLICATIONS
+###############################################################################
+
+### Student: apply
+# @name apply
+POST {{host}}/api/internships/{{newInternshipId}}/applications
+Authorization: Bearer {{studentToken}}
+Content-Type: {{json}}
+
+{ "coverLetter": "I would love to learn and contribute." }
+
+###
+@applicationId = {{apply.response.body.$.id}}
+
+### Student: applying twice -> 409
+POST {{host}}/api/internships/{{newInternshipId}}/applications
+Authorization: Bearer {{studentToken}}
+Content-Type: {{json}}
+
+{ "coverLetter": "again" }
+
+### Student: my applications (optional ?status=Submitted|Viewed|Interview|Accepted|Rejected|Withdrawn)
+GET {{host}}/api/applications/my?page=1&pageSize=10
+Authorization: Bearer {{studentToken}}
+
+### Application details (owner student, owning company or admin)
+GET {{host}}/api/applications/{{applicationId}}
+Authorization: Bearer {{studentToken}}
+
+### Company: applications for one of its internships
+GET {{host}}/api/internships/{{newInternshipId}}/applications?page=1&pageSize=10
+Authorization: Bearer {{companyToken}}
+
+### Company: status rules Submitted -> Viewed -> Interview -> Accepted (Rejected possible before Accepted)
+PATCH {{host}}/api/applications/{{applicationId}}/status
+Authorization: Bearer {{companyToken}}
+Content-Type: {{json}}
+
+{ "status": "Viewed" }
+
+### Invalid transition (Viewed -> Accepted) -> 400
+PATCH {{host}}/api/applications/{{applicationId}}/status
+Authorization: Bearer {{companyToken}}
+Content-Type: {{json}}
+
+{ "status": "Accepted" }
+
+### Company: download the applicant's CV (404 if the student has none)
+GET {{host}}/api/applications/{{applicationId}}/cv
+Authorization: Bearer {{companyToken}}
+
+### Student: withdraw
+POST {{host}}/api/applications/{{applicationId}}/withdraw
+Authorization: Bearer {{studentToken}}
+
+###############################################################################
+# STUDENT PROFILE, SKILLS, CV
+###############################################################################
+
+### My profile
+GET {{host}}/api/students/me
+Authorization: Bearer {{studentToken}}
+
+### Update profile and skills (level: Beginner, Intermediate, Advanced, Expert)
+PUT {{host}}/api/students/me
+Authorization: Bearer {{studentToken}}
+Content-Type: {{json}}
+
+{
+  "firstName": "Mari",
+  "lastName": "Tamm",
+  "schoolName": "Tallinna Tehnikaülikool",
+  "studyProgram": "Informatics",
+  "course": 3,
+  "description": "Interested in backend development.",
+  "phoneNumber": "+3725551111",
+  "location": "Tallinn",
+  "skills": [ { "skillId": "{{skillId}}", "level": "Intermediate" } ]
+}
+
+### Upload CV (PDF or DOCX, max 5 MB) - replace cv.pdf with a real file next to this one
+POST {{host}}/api/students/me/cv
+Authorization: Bearer {{studentToken}}
+Content-Type: multipart/form-data; boundary=WebKitFormBoundary
+
+--WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="cv.pdf"
+Content-Type: application/pdf
+
+< ./cv.pdf
+--WebKitFormBoundary--
+
+### CV metadata
+GET {{host}}/api/students/me/cv
+Authorization: Bearer {{studentToken}}
+
+### Download my CV
+GET {{host}}/api/students/me/cv/file
+Authorization: Bearer {{studentToken}}
+
+### Delete my CV
+DELETE {{host}}/api/students/me/cv
+Authorization: Bearer {{studentToken}}
+
+### Recommended internships by skill overlap (student, service or admin)
+GET {{host}}/api/students/{{studentProfileId}}/recommendations?minOverlap=1&page=1&pageSize=10
+Authorization: Bearer {{studentToken}}
+
+### Recommendations published since a date (what the Worker asks for)
+GET {{host}}/api/students/{{studentProfileId}}/recommendations?since=2026-01-01T00:00:00Z&minOverlap=30
+Authorization: Bearer {{serviceToken}}
+
+### All students (service or admin)
+GET {{host}}/api/students?page=1&pageSize=20
+Authorization: Bearer {{serviceToken}}
+
+###############################################################################
+# NOTIFICATIONS
+###############################################################################
+
+### Service/admin: create a notification for a user
+POST {{host}}/api/notifications
+Authorization: Bearer {{serviceToken}}
+Content-Type: {{json}}
+
+{ "userId": "{{studentUserId}}", "title": "Test", "message": "Hello from the .http file" }
+
+### My notifications (unreadOnly optional); response includes unreadCount
+# @name notifications
+GET {{host}}/api/notifications/my?page=1&pageSize=10&unreadOnly=false
+Authorization: Bearer {{studentToken}}
+
+###
+@notificationId = {{notifications.response.body.$.items[0].id}}
+
+### Mark one as read
+PATCH {{host}}/api/notifications/{{notificationId}}/read
+Authorization: Bearer {{studentToken}}
+
+### Mark all as read
+POST {{host}}/api/notifications/read-all
+Authorization: Bearer {{studentToken}}
+
+###############################################################################
+# ADMIN
+###############################################################################
+
+### Statistics (from/to optional; period: Day, Week, Month; top 1..50)
+GET {{host}}/api/admin/statistics?from=2026-01-01&to=2026-12-31&period=Month&top=10
+Authorization: Bearer {{adminToken}}
+
+### Company is not allowed -> 403
+GET {{host}}/api/admin/statistics
+Authorization: Bearer {{companyToken}}
+
+### Admin: delete (soft) an internship
+DELETE {{host}}/api/internships/{{newInternshipId}}
+Authorization: Bearer {{adminToken}}
+
+###############################################################################
+# WEBSOCKET (not supported by .http files)
+###############################################################################
+# ws://localhost:5117/ws/applications?access_token=<company JWT>
+# Company role only. Receives {"type":"ApplicationReceived", ...} when a student applies to one of
+# that company's internships. Try it with:  npx wscat -c "ws://localhost:5117/ws/applications?access_token=<token>"
