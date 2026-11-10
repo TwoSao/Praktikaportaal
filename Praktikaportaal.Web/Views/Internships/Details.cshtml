@@ -89,5 +89,33 @@
                 }
             </div>
         </div>
+
+        @if (Model.CanManage)
+        {
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-body">
+                    <h2 class="h6">@(Model.IsAdmin ? "Modereerimine" : "Halda kuulutust")</h2>
+                    @if (!Model.IsAdmin)
+                    {
+                        <a class="btn btn-outline-primary btn-sm mb-2 w-100" asp-controller="Company" asp-action="Edit" asp-route-id="@i.Id">Muuda</a>
+                        <a class="btn btn-outline-secondary btn-sm mb-2 w-100" asp-controller="Company" asp-action="Applicants" asp-route-id="@i.Id">Vaata avaldusi (@i.ApplicationsCount)</a>
+                    }
+                    <form asp-controller="Internships" asp-action="SetStatus" asp-route-id="@i.Id" method="post" class="d-flex gap-2 mb-2">
+                        <input type="hidden" name="returnTo" value="details" />
+                        <select name="status" class="form-select form-select-sm" aria-label="Kuulutuse staatus">
+                            @foreach (var status in Enum.GetValues<InternshipStatus>())
+                            {
+                                <option value="@status" selected="@(status == i.Status)">@status.Label()</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Salvesta</button>
+                    </form>
+                    <form asp-controller="Internships" asp-action="Delete" asp-route-id="@i.Id" method="post">
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100"
+                                data-confirm="Kas kustutad kuulutuse? Avaldused säilivad ajaloos.">Kustuta kuulutus</button>
+                    </form>
+                </div>
+            </div>
+        }
     </div>
 </div>

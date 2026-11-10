@@ -1,0 +1,99 @@
+@model InternshipFormViewModel
+@{
+    bool editing = Model.Id.HasValue;
+    ViewData["Title"] = editing ? "Muuda kuulutust" : "Lisa kuulutus";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-4">@ViewData["Title"]</h1>
+
+                <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Title" class="form-label"></label>
+                            <input asp-for="Title" class="form-control" placeholder="nt Noorem .NET arendaja praktikant" />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Field" class="form-label"></label>
+                            <input asp-for="Field" class="form-control" list="fieldOptions" placeholder="nt IT, Turundus, Disain" />
+                            <datalist id="fieldOptions">
+                                @foreach (var field in Model.KnownFields) { <option value="@field"></option> }
+                            </datalist>
+                            <span asp-validation-for="Field" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" placeholder="nt Tallinn" />
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" rows="6" class="form-control" placeholder="Mida praktikant teeb, kellega koos töötab, mida õpib?"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Requirements" class="form-label"></label>
+                            <textarea asp-for="Requirements" rows="3" class="form-control"></textarea>
+                            <span asp-validation-for="Requirements" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StartDate" class="form-label"></label>
+                            <input asp-for="StartDate" type="date" class="form-control" />
+                            <span asp-validation-for="StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EndDate" class="form-label"></label>
+                            <input asp-for="EndDate" type="date" class="form-control" />
+                            <span asp-validation-for="EndDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ApplicationDeadline" class="form-label"></label>
+                            <input asp-for="ApplicationDeadline" type="date" class="form-control" />
+                            <span asp-validation-for="ApplicationDeadline" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input asp-for="IsRemote" class="form-check-input" />
+                                <label asp-for="IsRemote" class="form-check-label"></label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="fw-semibold mb-1">Vajalikud oskused</div>
+                            <div class="form-text mb-2">Nende põhjal arvutatakse õppuritele soovituste sobivus.</div>
+                            <div class="row row-cols-2 row-cols-md-3 g-1">
+                                @foreach (var skill in Model.AllSkills)
+                                {
+                                    <div class="col">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="SkillIds" value="@skill.Id" id="skill_@skill.Id"
+                                                   checked="@Model.SkillIds.Contains(skill.Id)" />
+                                            <label class="form-check-label" for="skill_@skill.Id">@skill.Name</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">@(editing ? "Salvesta muudatused" : "Avalda kuulutus")</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Tühista</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
