@@ -176,3 +176,45 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* ── timeline (admin statistics) ──────────────────────────────────────── */
+.timeline {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 14rem;
+  overflow-x: auto;
+  padding-top: 1.2rem;
+}
+
+.timeline-col {
+  flex: 1 0 2.2rem;
+  max-width: 5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+}
+
+.timeline-bar {
+  display: block;
+  width: 70%;
+  min-height: 2px;
+  background: #0d6efd;
+  border-radius: 4px 4px 0 0;
+}
+
+.timeline-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.timeline-label {
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  white-space: nowrap;
+}

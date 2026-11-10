@@ -1,0 +1,193 @@
+@using Praktikaportaal.Core.DTOs
+@using Praktikaportaal.Core.Enums
+@using Praktikaportaal.Web.Services
+@model StatisticsViewModel
+@{
+    ViewData["Title"] = "Statistika";
+    var s = Model.Stats;
+    var q = Model.Query;
+    string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+    string days7 = DateTime.UtcNow.AddDays(-7).ToString("yyyy-MM-dd");
+    string days30 = DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-dd");
+    int maxStatus = StatisticsViewModel.Max(s.ByStatus.Select(x => x.Count));
+    int maxField = StatisticsViewModel.Max(s.ByField.Select(x => x.Count));
+    int maxTop = StatisticsViewModel.Max(s.TopInternships.Select(x => x.Count));
+    int maxPeriod = StatisticsViewModel.Max(s.ByPeriod.Select(x => x.Count));
+    string PeriodLabel(DateTime d) => s.Period switch
+    {
+        StatisticsPeriod.Month => d.ToString("MM.yyyy"),
+        StatisticsPeriod.Week => d.ToString("dd.MM"),
+        _ => d.ToString("dd.MM")
+    };
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h1 class="page-title h2 mb-0">Avalduste statistika</h1>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Kiirvalik">
+        <a class="btn btn-outline-secondary" asp-action="Statistics" asp-route-from="@days7" asp-route-period="Day">7 päeva</a>
+        <a class="btn btn-outline-secondary" asp-action="Statistics" asp-route-from="@days30" asp-route-period="Week">30 päeva</a>
+        <a class="btn btn-outline-secondary" asp-action="Statistics" asp-route-period="Week">Kogu aeg</a>
+    </div>
+</div>
+
+<div asp-validation-summary="ModelOnly" class="alert alert-warning"></div>
+
+<form asp-action="Statistics" method="get" class="card card-body shadow-sm border-0 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-6 col-md-3">
+            <label for="from" class="form-label small mb-1">Alates</label>
+            <input type="date" id="from" name="from" class="form-control" value="@q.From?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="col-6 col-md-3">
+            <label for="to" class="form-label small mb-1">Kuni</label>
+            <input type="date" id="to" name="to" class="form-control" value="@q.To?.ToString("yyyy-MM-dd")" max="@today" />
+        </div>
+        <div class="col-6 col-md-2">
+            <label for="period" class="form-label small mb-1">Ajatelg</label>
+            <select id="period" name="period" class="form-select">
+                @foreach (var p in Enum.GetValues<StatisticsPeriod>())
+                {
+                    <option value="@p" selected="@(q.Period == p)">@p.Label()</option>
+                }
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label for="top" class="form-label small mb-1">Top kuulutusi</label>
+            <select id="top" name="top" class="form-select">
+                @foreach (var t in new[] { 5, 10, 20, 50 })
+                {
+                    <option value="@t" selected="@(q.Top == t)">@t</option>
+                }
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Näita</button>
+            <a asp-action="Statistics" class="btn btn-outline-secondary" title="Lähtesta">✕</a>
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card shadow-sm border-0"><div class="card-body">
+            <div class="text-muted small">Avaldusi (valitud perioodil)</div><div class="value" id="statTotal">@s.TotalApplications</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card shadow-sm border-0"><div class="card-body">
+            <div class="text-muted small">Avaldatud praktikakohti</div><div class="value">@s.Overview.PublishedInternships</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card shadow-sm border-0"><div class="card-body">
+            <div class="text-muted small">Õppureid</div><div class="value">@s.Overview.Students</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card shadow-sm border-0"><div class="card-body">
+            <div class="text-muted small">Ettevõtteid</div><div class="value">@s.Overview.Companies</div>
+        </div></div>
+    </div>
+</div>
+<p class="small text-muted">
+    Õppurite, ettevõtete ja praktikakohtade arv on kogu portaali kohta; avalduste arvud järgivad valitud ajavahemikku
+    (@(q.From.HasValue ? UiText.Date(q.From) : "algusest") – @(q.To.HasValue ? UiText.Date(q.To) : "praeguseni")).
+</p>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white fw-semibold">Avaldused staatuse järgi</div>
+            <div class="card-body" id="byStatus">
+                @foreach (var row in s.ByStatus)
+                {
+                    <div class="stat-row">
+                        <span><span class="badge @row.Status.BadgeClass()">@row.Status.Label()</span></span>
+                        <div class="stat-bar" role="img" aria-label="@row.Status.Label(): @row.Count"><span style="width: @StatisticsViewModel.Percent(row.Count, maxStatus)%"></span></div>
+                        <strong class="text-end">@row.Count</strong>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white fw-semibold">Avaldused valdkonna järgi</div>
+            <div class="card-body" id="byField">
+                @if (s.ByField.Count == 0)
+                {
+                    <p class="text-muted mb-0">Valitud perioodil avaldusi ei ole.</p>
+                }
+                @foreach (var row in s.ByField)
+                {
+                    <div class="stat-row">
+                        <span class="text-truncate" title="@row.Field">@row.Field</span>
+                        <div class="stat-bar" role="img" aria-label="@row.Field: @row.Count"><span style="width: @StatisticsViewModel.Percent(row.Count, maxField)%"></span></div>
+                        <strong class="text-end">@row.Count</strong>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white fw-semibold">Avaldused ajas (@s.Period.Label().ToLowerInvariant() kaupa)</div>
+            <div class="card-body" id="byPeriod">
+                @if (s.ByPeriod.Count == 0)
+                {
+                    <p class="text-muted mb-0">Valitud perioodil avaldusi ei ole.</p>
+                }
+                else
+                {
+                    <div class="timeline" role="img" aria-label="Avaldused ajas">
+                        @foreach (var p in s.ByPeriod)
+                        {
+                            <div class="timeline-col" title="@UiText.Date(p.PeriodStart): @p.Count">
+                                <span class="timeline-value">@p.Count</span>
+                                <span class="timeline-bar" style="height: @StatisticsViewModel.Percent(p.Count, maxPeriod)%"></span>
+                                <span class="timeline-label">@PeriodLabel(p.PeriodStart)</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white fw-semibold">Enim avaldusi saanud praktikakohad</div>
+            @if (s.TopInternships.Count == 0)
+            {
+                <div class="card-body text-muted">Valitud perioodil avaldusi ei ole.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0" id="topInternships">
+                        <thead class="table-light"><tr><th>Praktikakoht</th><th>Ettevõte</th><th style="width: 30%">Avaldusi</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in s.TopInternships)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Internships" asp-action="Details" asp-route-id="@row.InternshipId" class="text-decoration-none">@row.Title</a>
+                                    </td>
+                                    <td class="text-muted">@row.CompanyName</td>
+                                    <td>
+                                        <div class="stat-row" style="grid-template-columns: 1fr 2.5rem">
+                                            <div class="stat-bar"><span style="width: @StatisticsViewModel.Percent(row.Count, maxTop)%"></span></div>
+                                            <strong class="text-end">@row.Count</strong>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
