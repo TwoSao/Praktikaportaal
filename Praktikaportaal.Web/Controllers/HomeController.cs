@@ -1,25 +1,46 @@
-using Microsoft.AspNetCore.Mvc;
-using Praktikaportaal.Web.Models;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Praktikaportaal.Core.DTOs;
+using Praktikaportaal.Web.Models;
+using Praktikaportaal.Web.Services;
 
-namespace Praktikaportaal.Web.Controllers
+namespace Praktikaportaal.Web.Controllers;
+
+public class HomeController : Controller
 {
-    public class HomeController : Controller
+    private readonly IApiClient _api;
+
+    public HomeController(IApiClient api)
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        _api = api;
+    }
 
-        public IActionResult Privacy()
+    public async Task<IActionResult> Index()
+    {
+        // The start page must still open when the API is down, just without the internship list.
+        try
         {
-            return View();
+            var latest = await _api.SearchInternshipsAsync(new InternshipQueryParameters { PageSize = 6 });
+            var filters = await _api.GetInternshipFiltersAsync();
+            return View(new HomeViewModel { Latest = latest.Items, TotalInternships = latest.TotalCount, Filters = filters });
         }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+        catch (ApiUnavailableException)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View(new HomeViewModel { ApiAvailable = false });
         }
     }
+
+    /// <summary>Friendly page for status codes without a body (404 for an unknown URL, etc.).</summary>
+    [Route("Home/Status/{id:int}")]
+    public IActionResult Status(int id)
+    {
+        Response.StatusCode = id;
+        return id == StatusCodes.Status404NotFound
+            ? View("NotFound")
+            : View("ApiError", model: id == StatusCodes.Status403Forbidden ? "Sul ei ole sellele lehele ligipääsu." : "Midagi läks valesti.");
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error() =>
+        View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
 }

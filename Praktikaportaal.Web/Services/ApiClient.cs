@@ -1,263 +1,241 @@
+using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
+using System.Net.Http.Json;
 using System.Text.Json;
-using Praktikaportaal.Web.Models;
+using System.Text.Json.Serialization;
+using Praktikaportaal.Core.DTOs;
+using Praktikaportaal.Core.Enums;
 
 namespace Praktikaportaal.Web.Services;
 
 public class ApiClient : IApiClient
 {
-    private readonly HttpClient _http;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    /// <summary>Same JSON conventions as the API: camelCase, enums as strings.</summary>
+    public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
-    public ApiClient(HttpClient http, IHttpContextAccessor httpContextAccessor)
+    private readonly HttpClient _http;
+
+    public ApiClient(HttpClient http)
     {
         _http = http;
-        _httpContextAccessor = httpContextAccessor;
     }
 
-    private void AddAuthorizationHeader()
+    // ── auth ────────────────────────────────────────────────────────────────
+
+    public Task<AuthResultDto> LoginAsync(LoginDto dto, CancellationToken ct = default) =>
+        PostAsync<AuthResultDto>("api/auth/login", dto, ct);
+
+    public Task<AuthResultDto> RegisterStudentAsync(RegisterStudentDto dto, CancellationToken ct = default) =>
+        PostAsync<AuthResultDto>("api/auth/register-student", dto, ct);
+
+    public Task<AuthResultDto> RegisterCompanyAsync(RegisterCompanyDto dto, CancellationToken ct = default) =>
+        PostAsync<AuthResultDto>("api/auth/register-company", dto, ct);
+
+    // ── internships ─────────────────────────────────────────────────────────
+
+    public Task<PagedResult<InternshipDto>> SearchInternshipsAsync(InternshipQueryParameters query, CancellationToken ct = default) =>
+        GetAsync<PagedResult<InternshipDto>>("api/internships" + QueryStringBuilder.Build(query), ct);
+
+    public Task<InternshipFiltersDto> GetInternshipFiltersAsync(CancellationToken ct = default) =>
+        GetAsync<InternshipFiltersDto>("api/internships/filters", ct);
+
+    public Task<InternshipDto> GetInternshipAsync(Guid id, CancellationToken ct = default) =>
+        GetAsync<InternshipDto>($"api/internships/{id}", ct);
+
+    public async Task<IReadOnlyList<InternshipDto>> GetMyInternshipsAsync(CancellationToken ct = default) =>
+        await GetAsync<List<InternshipDto>>("api/internships/my", ct);
+
+    public Task<InternshipDto> CreateInternshipAsync(CreateInternshipDto dto, CancellationToken ct = default) =>
+        PostAsync<InternshipDto>("api/internships", dto, ct);
+
+    public Task<InternshipDto> UpdateInternshipAsync(Guid id, UpdateInternshipDto dto, CancellationToken ct = default) =>
+        SendAsync<InternshipDto>(HttpMethod.Put, $"api/internships/{id}", dto, ct);
+
+    public Task DeleteInternshipAsync(Guid id, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Delete, $"api/internships/{id}", null, ct);
+
+    public Task SetInternshipStatusAsync(Guid id, InternshipStatus status, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Patch, $"api/internships/{id}/status", new UpdateInternshipStatusDto { Status = status }, ct);
+
+    // ── applications ────────────────────────────────────────────────────────
+
+    public Task<ApplicationDto> ApplyAsync(Guid internshipId, CreateApplicationDto dto, CancellationToken ct = default) =>
+        PostAsync<ApplicationDto>($"api/internships/{internshipId}/applications", dto, ct);
+
+    public Task<PagedResult<ApplicationDto>> GetMyApplicationsAsync(ApplicationQueryParameters query, CancellationToken ct = default) =>
+        GetAsync<PagedResult<ApplicationDto>>("api/applications/my" + QueryStringBuilder.Build(query), ct);
+
+    public Task<PagedResult<ApplicationDto>> GetInternshipApplicationsAsync(Guid internshipId, ApplicationQueryParameters query, CancellationToken ct = default) =>
+        GetAsync<PagedResult<ApplicationDto>>($"api/internships/{internshipId}/applications" + QueryStringBuilder.Build(query), ct);
+
+    public Task SetApplicationStatusAsync(Guid applicationId, ApplicationStatus status, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Patch, $"api/applications/{applicationId}/status", new UpdateApplicationStatusDto { Status = status }, ct);
+
+    public Task WithdrawApplicationAsync(Guid applicationId, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Post, $"api/applications/{applicationId}/withdraw", null, ct);
+
+    public Task<ApiFile> DownloadApplicantCvAsync(Guid applicationId, CancellationToken ct = default) =>
+        DownloadAsync($"api/applications/{applicationId}/cv", ct);
+
+    // ── student profile, CV, recommendations ────────────────────────────────
+
+    public Task<StudentProfileDto> GetMyProfileAsync(CancellationToken ct = default) =>
+        GetAsync<StudentProfileDto>("api/students/me", ct);
+
+    public Task<StudentProfileDto> UpdateMyProfileAsync(UpdateStudentProfileDto dto, CancellationToken ct = default) =>
+        SendAsync<StudentProfileDto>(HttpMethod.Put, "api/students/me", dto, ct);
+
+    public async Task<CvDto?> GetMyCvAsync(CancellationToken ct = default)
     {
-        var token = _httpContextAccessor.HttpContext?.User.FindFirst("jwt_token")?.Value;
-        if (!string.IsNullOrEmpty(token))
+        try
         {
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return await GetAsync<CvDto>("api/students/me/cv", ct);
+        }
+        catch (ApiException ex) when (ex.IsNotFound)
+        {
+            return null; // no CV uploaded yet
         }
     }
 
-    public async Task<(bool Success, string? Token, string? Error, dynamic? User)> LoginAsync(LoginViewModel model)
+    public async Task<CvDto> UploadMyCvAsync(Stream content, string fileName, string? contentType, CancellationToken ct = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/auth/login", new
-        {
-            email = model.Email,
-            password = model.Password
-        });
+        using var form = new MultipartFormDataContent();
+        var file = new StreamContent(content);
+        if (!string.IsNullOrWhiteSpace(contentType) && MediaTypeHeaderValue.TryParse(contentType, out var mediaType))
+            file.Headers.ContentType = mediaType;
+        form.Add(file, "file", fileName);
 
-        var content = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(content);
-        var root = doc.RootElement;
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/students/me/cv") { Content = form };
+        return await ReadAsync<CvDto>(request, ct);
+    }
 
-        bool success = root.GetProperty("success").GetBoolean();
-        if (!success)
+    public Task DeleteMyCvAsync(CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Delete, "api/students/me/cv", null, ct);
+
+    public Task<ApiFile> DownloadMyCvAsync(CancellationToken ct = default) =>
+        DownloadAsync("api/students/me/cv/file", ct);
+
+    public Task<PagedResult<RecommendationDto>> GetRecommendationsAsync(Guid studentProfileId, RecommendationQueryParameters query, CancellationToken ct = default) =>
+        GetAsync<PagedResult<RecommendationDto>>($"api/students/{studentProfileId}/recommendations" + QueryStringBuilder.Build(query), ct);
+
+    // ── skills ──────────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<SkillDto>> GetSkillsAsync(CancellationToken ct = default) =>
+        await GetAsync<List<SkillDto>>("api/skills", ct);
+
+    // ── notifications ───────────────────────────────────────────────────────
+
+    public Task<NotificationListDto> GetNotificationsAsync(NotificationQueryParameters query, CancellationToken ct = default) =>
+        GetAsync<NotificationListDto>("api/notifications/my" + QueryStringBuilder.Build(query), ct);
+
+    public Task MarkNotificationReadAsync(Guid id, CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Patch, $"api/notifications/{id}/read", null, ct);
+
+    public Task MarkAllNotificationsReadAsync(CancellationToken ct = default) =>
+        SendAsync(HttpMethod.Post, "api/notifications/read-all", null, ct);
+
+    // ── admin ───────────────────────────────────────────────────────────────
+
+    public Task<ApplicationStatisticsDto> GetStatisticsAsync(StatisticsQueryParameters query, CancellationToken ct = default) =>
+        GetAsync<ApplicationStatisticsDto>("api/admin/statistics" + QueryStringBuilder.Build(query), ct);
+
+    // ── plumbing ────────────────────────────────────────────────────────────
+
+    private Task<T> GetAsync<T>(string url, CancellationToken ct) => SendAsync<T>(HttpMethod.Get, url, null, ct);
+
+    private Task<T> PostAsync<T>(string url, object body, CancellationToken ct) => SendAsync<T>(HttpMethod.Post, url, body, ct);
+
+    private async Task<T> SendAsync<T>(HttpMethod method, string url, object? body, CancellationToken ct)
+    {
+        using var request = CreateRequest(method, url, body);
+        return await ReadAsync<T>(request, ct);
+    }
+
+    private async Task SendAsync(HttpMethod method, string url, object? body, CancellationToken ct)
+    {
+        using var request = CreateRequest(method, url, body);
+        using var response = await ExecuteAsync(request, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
+    private static HttpRequestMessage CreateRequest(HttpMethod method, string url, object? body) =>
+        new(method, url) { Content = body == null ? null : JsonContent.Create(body, body.GetType(), options: Json) };
+
+    private async Task<T> ReadAsync<T>(HttpRequestMessage request, CancellationToken ct)
+    {
+        using var response = await ExecuteAsync(request, ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<T>(Json, ct)
+               ?? throw new ApiException(response.StatusCode, "Tühi vastus", "Server tagastas tühja vastuse.");
+    }
+
+    private async Task<ApiFile> DownloadAsync(string url, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var response = await ExecuteAsync(request, ct);
+        await EnsureSuccessAsync(response, ct);
+
+        string fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+                          ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+                          ?? "cv";
+        return new ApiFile(
+            await response.Content.ReadAsByteArrayAsync(ct),
+            fileName,
+            response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream");
+    }
+
+    private async Task<HttpResponseMessage> ExecuteAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        try
         {
-            string error = root.TryGetProperty("error", out var err) ? err.GetString() ?? "Login failed" : "Login failed";
-            return (false, null, error, null);
+            return await _http.SendAsync(request, ct);
         }
-
-        string token = root.GetProperty("token").GetString()!;
-        var userEl = root.GetProperty("user");
-
-        return (true, token, null, userEl.Clone());
-    }
-
-    public async Task<(bool Success, string? Token, string? Error, dynamic? User)> RegisterStudentAsync(RegisterStudentViewModel model)
-    {
-        var response = await _http.PostAsJsonAsync("/api/auth/register-student", new
+        catch (HttpRequestException ex)
         {
-            email = model.Email,
-            password = model.Password,
-            firstName = model.FirstName,
-            lastName = model.LastName,
-            schoolName = model.SchoolName,
-            studyProgram = model.StudyProgram,
-            course = model.Course,
-            phoneNumber = model.PhoneNumber,
-            location = model.Location
-        });
-
-        var content = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(content);
-        var root = doc.RootElement;
-
-        bool success = root.GetProperty("success").GetBoolean();
-        if (!success)
-        {
-            string error = root.TryGetProperty("error", out var err) ? err.GetString() ?? "Registration failed" : "Registration failed";
-            return (false, null, error, null);
+            throw new ApiUnavailableException(ex);
         }
-
-        string token = root.GetProperty("token").GetString()!;
-        var userEl = root.GetProperty("user");
-
-        return (true, token, null, userEl.Clone());
-    }
-
-    public async Task<(bool Success, string? Token, string? Error, dynamic? User)> RegisterCompanyAsync(RegisterCompanyViewModel model)
-    {
-        var response = await _http.PostAsJsonAsync("/api/auth/register-company", new
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            email = model.Email,
-            password = model.Password,
-            firstName = model.FirstName,
-            lastName = model.LastName,
-            companyName = model.CompanyName,
-            registrationCode = model.RegistrationCode,
-            description = model.Description,
-            website = model.Website,
-            address = model.Address,
-            contactEmail = model.ContactEmail,
-            contactPhone = model.ContactPhone
-        });
-
-        var content = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(content);
-        var root = doc.RootElement;
-
-        bool success = root.GetProperty("success").GetBoolean();
-        if (!success)
-        {
-            string error = root.TryGetProperty("error", out var err) ? err.GetString() ?? "Registration failed" : "Registration failed";
-            return (false, null, error, null);
+            throw new ApiUnavailableException(ex); // timeout
         }
-
-        string token = root.GetProperty("token").GetString()!;
-        var userEl = root.GetProperty("user");
-
-        return (true, token, null, userEl.Clone());
     }
 
-    public async Task<List<InternshipItemViewModel>> GetPublishedInternshipsAsync(string? search = null, bool? isRemote = null)
+    /// <summary>Turns an error response (RFC 7807 ProblemDetails) into an <see cref="ApiException"/>.</summary>
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        var query = new List<string>();
-        if (!string.IsNullOrWhiteSpace(search)) query.Add($"search={Uri.EscapeDataString(search)}");
-        if (isRemote.HasValue) query.Add($"isRemote={isRemote.Value}");
+        if (response.IsSuccessStatusCode)
+            return;
 
-        string url = "/api/internships" + (query.Count > 0 ? "?" + string.Join("&", query) : "");
+        string title = response.ReasonPhrase ?? "Viga";
+        string? detail = null;
+        Dictionary<string, string[]>? errors = null;
 
-        var response = await _http.GetAsync(url);
-        if (!response.IsSuccessStatusCode) return [];
-
-        var list = await response.Content.ReadFromJsonAsync<List<InternshipItemViewModel>>(JsonOptions);
-        return list ?? [];
-    }
-
-    public async Task<InternshipItemViewModel?> GetInternshipByIdAsync(Guid id)
-    {
-        var response = await _http.GetAsync($"/api/internships/{id}");
-        if (!response.IsSuccessStatusCode) return null;
-
-        return await response.Content.ReadFromJsonAsync<InternshipItemViewModel>(JsonOptions);
-    }
-
-    public async Task<List<InternshipItemViewModel>> GetMyInternshipsAsync()
-    {
-        AddAuthorizationHeader();
-        var response = await _http.GetAsync("/api/internships/my");
-        if (!response.IsSuccessStatusCode) return [];
-
-        var list = await response.Content.ReadFromJsonAsync<List<InternshipItemViewModel>>(JsonOptions);
-        return list ?? [];
-    }
-
-    public async Task<(bool Success, string? Error, InternshipItemViewModel? Item)> CreateInternshipAsync(CreateInternshipViewModel model)
-    {
-        AddAuthorizationHeader();
-        var response = await _http.PostAsJsonAsync("/api/internships", new
+        try
         {
-            title = model.Title,
-            description = model.Description,
-            requirements = model.Requirements,
-            location = model.Location,
-            startDate = model.StartDate,
-            endDate = model.EndDate,
-            applicationDeadline = model.ApplicationDeadline,
-            isRemote = model.IsRemote
-        });
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var err = await response.Content.ReadAsStringAsync();
-            return (false, "Viga kuulutuse loomisel", null);
-        }
-
-        var item = await response.Content.ReadFromJsonAsync<InternshipItemViewModel>(JsonOptions);
-        return (true, null, item);
-    }
-
-    public async Task<bool> UpdateInternshipStatusAsync(Guid id, string status)
-    {
-        AddAuthorizationHeader();
-        // status is an enum string: Published, Closed, etc.
-        int statusInt = status switch
-        {
-            "Draft" => 0,
-            "Published" => 1,
-            "Closed" => 2,
-            "Archived" => 3,
-            _ => 1
-        };
-
-        var response = await _http.PatchAsJsonAsync($"/api/internships/{id}/status", new { status = statusInt });
-        return response.IsSuccessStatusCode;
-    }
-
-    public async Task<(bool Success, string? Error)> ApplyAsync(ApplyViewModel model)
-    {
-        AddAuthorizationHeader();
-        var response = await _http.PostAsJsonAsync("/api/applications", new
-        {
-            internshipId = model.InternshipId,
-            coverLetter = model.CoverLetter
-        });
-
-        if (!response.IsSuccessStatusCode)
-        {
-            string errStr = await response.Content.ReadAsStringAsync();
-            try
+            string body = await response.Content.ReadAsStringAsync(ct);
+            if (!string.IsNullOrWhiteSpace(body))
             {
-                using var doc = JsonDocument.Parse(errStr);
-                if (doc.RootElement.TryGetProperty("error", out var e))
-                    return (false, e.GetString());
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object)
+                {
+                    if (root.TryGetProperty("title", out var t) && t.ValueKind == JsonValueKind.String) title = t.GetString()!;
+                    if (root.TryGetProperty("detail", out var d) && d.ValueKind == JsonValueKind.String) detail = d.GetString();
+                    if (root.TryGetProperty("errors", out var e) && e.ValueKind == JsonValueKind.Object)
+                        errors = e.EnumerateObject().ToDictionary(
+                            p => p.Name,
+                            p => p.Value.EnumerateArray().Select(x => x.GetString() ?? string.Empty).ToArray());
+                }
             }
-            catch { }
-            return (false, "Kandideerimine ebaõnnestus.");
+        }
+        catch (JsonException)
+        {
+            // not JSON (e.g. a proxy error page): keep the generic title
         }
 
-        return (true, null);
-    }
-
-    public async Task<List<ApplicationItemViewModel>> GetMyApplicationsAsync()
-    {
-        AddAuthorizationHeader();
-        var response = await _http.GetAsync("/api/applications/my");
-        if (!response.IsSuccessStatusCode) return [];
-
-        var list = await response.Content.ReadFromJsonAsync<List<ApplicationItemViewModel>>(JsonOptions);
-        return list ?? [];
-    }
-
-    public async Task<List<ApplicationItemViewModel>> GetInternshipApplicationsAsync(Guid internshipId)
-    {
-        AddAuthorizationHeader();
-        var response = await _http.GetAsync($"/api/applications/internship/{internshipId}");
-        if (!response.IsSuccessStatusCode) return [];
-
-        var list = await response.Content.ReadFromJsonAsync<List<ApplicationItemViewModel>>(JsonOptions);
-        return list ?? [];
-    }
-
-    public async Task<bool> UpdateApplicationStatusAsync(Guid applicationId, string status)
-    {
-        AddAuthorizationHeader();
-        int statusInt = status switch
-        {
-            "Pending" => 0,
-            "Accepted" => 1,
-            "Rejected" => 2,
-            "Withdrawn" => 3,
-            _ => 0
-        };
-
-        var response = await _http.PatchAsJsonAsync($"/api/applications/{applicationId}/status", new { status = statusInt });
-        return response.IsSuccessStatusCode;
-    }
-
-    public async Task<bool> WithdrawApplicationAsync(Guid applicationId)
-    {
-        AddAuthorizationHeader();
-        var response = await _http.PostAsync($"/api/applications/{applicationId}/withdraw", null);
-        return response.IsSuccessStatusCode;
+        throw new ApiException(response.StatusCode, title, detail, errors);
     }
 }
-
