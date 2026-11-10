@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Interfaces.Repositories;
@@ -27,17 +28,29 @@ public class ApplicationRepository : IApplicationRepository
     public Task<Application?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         WithDetails().FirstOrDefaultAsync(a => a.Id == id, ct);
 
-    public async Task<IReadOnlyList<Application>> GetByStudentAsync(Guid studentProfileId, CancellationToken ct = default) =>
-        await WithDetails()
-            .Where(a => a.StudentProfileId == studentProfileId)
+    public Task<(IReadOnlyList<Application> Items, int TotalCount)> GetByStudentAsync(
+        Guid studentProfileId, ApplicationQueryParameters query, CancellationToken ct = default) =>
+        PageAsync(WithDetails().Where(a => a.StudentProfileId == studentProfileId), query, ct);
+
+    public Task<(IReadOnlyList<Application> Items, int TotalCount)> GetByInternshipAsync(
+        Guid internshipId, ApplicationQueryParameters query, CancellationToken ct = default) =>
+        PageAsync(WithDetails().Where(a => a.InternshipId == internshipId), query, ct);
+
+    private static async Task<(IReadOnlyList<Application> Items, int TotalCount)> PageAsync(
+        IQueryable<Application> source, ApplicationQueryParameters query, CancellationToken ct)
+    {
+        if (query.Status.HasValue)
+            source = source.Where(a => a.Status == query.Status.Value);
+
+        int total = await source.CountAsync(ct);
+        var items = await source
             .OrderByDescending(a => a.AppliedAt)
+            .Skip(query.Skip)
+            .Take(query.PageSize)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<Application>> GetByInternshipAsync(Guid internshipId, CancellationToken ct = default) =>
-        await WithDetails()
-            .Where(a => a.InternshipId == internshipId)
-            .OrderByDescending(a => a.AppliedAt)
-            .ToListAsync(ct);
+        return (items, total);
+    }
 
     public Task<bool> HasActiveApplicationAsync(Guid studentProfileId, Guid internshipId, CancellationToken ct = default) =>
         _context.Applications.AnyAsync(a =>
