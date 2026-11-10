@@ -31,6 +31,10 @@
                             <li class="nav-item"><a class="nav-link" asp-controller="Company" asp-action="Index">Töölaud</a></li>
                             <li class="nav-item"><a class="nav-link text-warning fw-semibold" asp-controller="Company" asp-action="Create">+ Lisa kuulutus</a></li>
                         }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Statistics">Statistika</a></li>
+                        }
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             @await Component.InvokeAsync("NotificationBadge")
