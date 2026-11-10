@@ -32,12 +32,13 @@ public class ApplicationsController : ControllerBase
     public async Task<ActionResult<ApplicationDto>> GetById(Guid id, CancellationToken ct) =>
         Ok(await _applicationService.GetByIdAsync(id, User.ToCurrentUser(), ct));
 
-    /// <summary>Returns list of applications submitted by the logged-in student.</summary>
+    /// <summary>Returns the logged-in student's applications (newest first), optionally by status.</summary>
     [Authorize(Roles = Roles.Student)]
     [HttpGet("my")]
-    [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<ApplicationDto>>> GetMyApplications(CancellationToken ct) =>
-        Ok(await _applicationService.GetStudentApplicationsAsync(User.RequireProfileId(), ct));
+    [ProducesResponseType(typeof(PagedResult<ApplicationDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ApplicationDto>>> GetMyApplications(
+        [FromQuery] ApplicationQueryParameters query, CancellationToken ct) =>
+        Ok(await _applicationService.GetStudentApplicationsAsync(User.RequireProfileId(), query, ct));
 
     /// <summary>Updates an application's status (Viewed, Interview, Accepted, Rejected) — owning Company only.</summary>
     [Authorize(Roles = Roles.Company)]
