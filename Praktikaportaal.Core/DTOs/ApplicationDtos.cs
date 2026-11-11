@@ -51,6 +51,10 @@ public class ApplicationDto
     public DateTime AppliedAt { get; set; }
 }
 
+/// <summary>
+/// Company status change. Allowed: Submitted→Viewed|Rejected, Viewed→Interview|Rejected,
+/// Interview→Accepted|Rejected. Anything else returns 400.
+/// </summary>
 public class UpdateApplicationStatusDto
 {
     /// <example>Interview</example>
