@@ -184,13 +184,54 @@ public class ApplicationServiceTests
             CoverLetter = "Please hire me"
         });
 
-        await service.UpdateApplicationStatusAsync(
-            applyResult.Id,
-            company.Id,
-            ApplicationStatus.Accepted);
+        await service.UpdateApplicationStatusAsync(applyResult.Id, company.Id, ApplicationStatus.Viewed);
+        await service.UpdateApplicationStatusAsync(applyResult.Id, company.Id, ApplicationStatus.Interview);
+        await service.UpdateApplicationStatusAsync(applyResult.Id, company.Id, ApplicationStatus.Accepted);
 
         var appInDb = await context.Applications.FindAsync(applyResult.Id);
         Assert.NotNull(appInDb);
         Assert.Equal(ApplicationStatus.Accepted, appInDb.Status);
+    }
+
+    [Fact]
+    public async Task UpdateApplicationStatus_InvalidTransition_ThrowsAndKeepsStatus()
+    {
+        using var context = CreateDbContext();
+        var (_, student, company, internship) = await SeedDataAsync(context);
+        var service = CreateService(context);
+        var applied = await service.ApplyAsync(student.Id, internship.Id, new CreateApplicationDto());
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            service.UpdateApplicationStatusAsync(applied.Id, company.Id, ApplicationStatus.Accepted));
+
+        Assert.Contains("Submitted", ex.Message);
+        Assert.Contains("Viewed", ex.Message); // lists allowed next statuses
+        Assert.Equal(ApplicationStatus.Submitted, (await context.Applications.FindAsync(applied.Id))!.Status);
+    }
+
+    [Fact]
+    public async Task UpdateApplicationStatus_ByOtherCompany_ThrowsForbidden()
+    {
+        using var context = CreateDbContext();
+        var (_, student, _, internship) = await SeedDataAsync(context);
+        var service = CreateService(context);
+        var applied = await service.ApplyAsync(student.Id, internship.Id, new CreateApplicationDto());
+
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            service.UpdateApplicationStatusAsync(applied.Id, Guid.NewGuid(), ApplicationStatus.Viewed));
+    }
+
+    [Fact]
+    public async Task Withdraw_AfterAccepted_ThrowsBusinessRule()
+    {
+        using var context = CreateDbContext();
+        var (_, student, company, internship) = await SeedDataAsync(context);
+        var service = CreateService(context);
+        var applied = await service.ApplyAsync(student.Id, internship.Id, new CreateApplicationDto());
+        await service.UpdateApplicationStatusAsync(applied.Id, company.Id, ApplicationStatus.Viewed);
+        await service.UpdateApplicationStatusAsync(applied.Id, company.Id, ApplicationStatus.Interview);
+        await service.UpdateApplicationStatusAsync(applied.Id, company.Id, ApplicationStatus.Accepted);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.WithdrawApplicationAsync(applied.Id, student.Id));
     }
 }
