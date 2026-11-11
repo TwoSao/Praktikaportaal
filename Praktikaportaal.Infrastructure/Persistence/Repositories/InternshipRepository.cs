@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Interfaces.Repositories;
@@ -23,14 +24,14 @@ public class InternshipRepository : IInternshipRepository
     public Task<Internship?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         WithDetails().FirstOrDefaultAsync(i => i.Id == id, ct);
 
-    public async Task<IReadOnlyList<Internship>> GetPublishedAsync(
-        string? search, bool? isRemote, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<Internship> Items, int TotalCount)> SearchPublishedAsync(
+        InternshipQueryParameters q, CancellationToken ct = default)
     {
-        var query = WithDetails().Where(i => i.Status == InternshipStatus.Published);
+        var query = _context.Internships.Where(i => i.Status == InternshipStatus.Published);
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(q.Search))
         {
-            string s = search.Trim().ToLower();
+            string s = q.Search.Trim().ToLower();
             query = query.Where(i =>
                 i.Title.ToLower().Contains(s) ||
                 i.Description.ToLower().Contains(s) ||
@@ -39,10 +40,63 @@ public class InternshipRepository : IInternshipRepository
                 i.CompanyProfile.CompanyName.ToLower().Contains(s));
         }
 
-        if (isRemote.HasValue)
-            query = query.Where(i => i.IsRemote == isRemote.Value);
+        if (!string.IsNullOrWhiteSpace(q.Field))
+        {
+            string field = q.Field.Trim().ToLower();
+            query = query.Where(i => i.Field.ToLower() == field);
+        }
 
-        return await query.OrderByDescending(i => i.CreatedAt).ToListAsync(ct);
+        if (!string.IsNullOrWhiteSpace(q.Location))
+        {
+            string location = q.Location.Trim().ToLower();
+            query = query.Where(i => i.Location != null && i.Location.ToLower().Contains(location));
+        }
+
+        if (q.IsRemote.HasValue)
+            query = query.Where(i => i.IsRemote == q.IsRemote.Value);
+
+        if (q.CreatedAfter.HasValue)
+            query = query.Where(i => i.CreatedAt > q.CreatedAfter.Value);
+
+        int total = await query.CountAsync(ct);
+
+        query = q.Sort switch
+        {
+            InternshipSort.Oldest => query.OrderBy(i => i.CreatedAt),
+            InternshipSort.Deadline => query
+                .OrderBy(i => i.ApplicationDeadline == null)
+                .ThenBy(i => i.ApplicationDeadline)
+                .ThenByDescending(i => i.CreatedAt),
+            InternshipSort.Title => query.OrderBy(i => i.Title),
+            _ => query.OrderByDescending(i => i.CreatedAt)
+        };
+
+        var items = await query
+            .Skip(q.Skip)
+            .Take(q.PageSize)
+            .Include(i => i.CompanyProfile)
+            .Include(i => i.InternshipSkills).ThenInclude(isk => isk.Skill)
+            .Include(i => i.Applications)
+            .AsSplitQuery()
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
+    public async Task<(IReadOnlyList<string> Fields, IReadOnlyList<string> Locations)> GetPublishedFilterValuesAsync(
+        CancellationToken ct = default)
+    {
+        var published = _context.Internships.Where(i => i.Status == InternshipStatus.Published);
+
+        var fields = await published.Select(i => i.Field).Distinct().OrderBy(f => f).ToListAsync(ct);
+        var locations = await published
+            .Where(i => i.Location != null && i.Location != "")
+            .Select(i => i.Location!)
+            .Distinct()
+            .OrderBy(l => l)
+            .ToListAsync(ct);
+
+        return (fields, locations);
     }
 
     public async Task<IReadOnlyList<Internship>> GetByCompanyAsync(Guid companyProfileId, CancellationToken ct = default) =>

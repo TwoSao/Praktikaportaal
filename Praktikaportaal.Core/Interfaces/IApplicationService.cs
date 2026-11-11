@@ -15,10 +15,10 @@ public interface IApplicationService
     /// <summary>Returns one application if the caller is its student, the owning company or an admin.</summary>
     Task<ApplicationDto> GetByIdAsync(Guid applicationId, CurrentUser caller, CancellationToken ct = default);
 
-    Task<IReadOnlyList<ApplicationDto>> GetStudentApplicationsAsync(Guid studentProfileId, CancellationToken ct = default);
+    Task<PagedResult<ApplicationDto>> GetStudentApplicationsAsync(Guid studentProfileId, ApplicationQueryParameters query, CancellationToken ct = default);
 
     /// <summary>Applications for an internship; only the owning company (or an admin) may see them.</summary>
-    Task<IReadOnlyList<ApplicationDto>> GetInternshipApplicationsAsync(Guid internshipId, CurrentUser caller, CancellationToken ct = default);
+    Task<PagedResult<ApplicationDto>> GetInternshipApplicationsAsync(Guid internshipId, CurrentUser caller, ApplicationQueryParameters query, CancellationToken ct = default);
 
     Task UpdateApplicationStatusAsync(Guid applicationId, Guid companyProfileId, ApplicationStatus newStatus, CancellationToken ct = default);
 

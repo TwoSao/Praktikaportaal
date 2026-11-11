@@ -20,13 +20,29 @@ public class InternshipService : IInternshipService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IReadOnlyList<InternshipDto>> GetPublishedInternshipsAsync(
-        string? search = null,
-        bool? isRemote = null,
+    public async Task<PagedResult<InternshipDto>> SearchInternshipsAsync(
+        InternshipQueryParameters query,
         CancellationToken ct = default)
     {
-        var list = await _internships.GetPublishedAsync(search, isRemote, ct);
-        return list.Select(MapToDto).ToList();
+        // Defensive clamp (the API also validates the range).
+        query.Page = Math.Max(1, query.Page);
+        query.PageSize = Math.Clamp(query.PageSize, 1, PagingParameters.MaxPageSize);
+
+        var (items, total) = await _internships.SearchPublishedAsync(query, ct);
+
+        return new PagedResult<InternshipDto>
+        {
+            Items = items.Select(MapToDto).ToList(),
+            TotalCount = total,
+            Page = query.Page,
+            PageSize = query.PageSize
+        };
+    }
+
+    public async Task<InternshipFiltersDto> GetFiltersAsync(CancellationToken ct = default)
+    {
+        var (fields, locations) = await _internships.GetPublishedFilterValuesAsync(ct);
+        return new InternshipFiltersDto { Fields = fields, Locations = locations };
     }
 
     public async Task<InternshipDto> GetInternshipByIdAsync(Guid id, CurrentUser? caller = null, CancellationToken ct = default)
