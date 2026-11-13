@@ -23,7 +23,9 @@ public class ApplicationRepository : IApplicationRepository
         .Include(a => a.Internship)
             .ThenInclude(i => i.CompanyProfile)
         .Include(a => a.StudentProfile)
-            .ThenInclude(sp => sp.User);
+            .ThenInclude(sp => sp.User)
+        .Include(a => a.StudentProfile)
+            .ThenInclude(sp => sp.CVs);
 
     public Task<Application?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         WithDetails().FirstOrDefaultAsync(a => a.Id == id, ct);
