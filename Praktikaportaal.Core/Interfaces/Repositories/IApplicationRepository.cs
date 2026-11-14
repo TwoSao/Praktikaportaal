@@ -18,5 +18,8 @@ public interface IApplicationRepository
     /// <summary>True if the student has a non-withdrawn application for the internship.</summary>
     Task<bool> HasActiveApplicationAsync(Guid studentProfileId, Guid internshipId, CancellationToken ct = default);
 
+    /// <summary>Ids of internships the student has a non-withdrawn application for.</summary>
+    Task<IReadOnlyList<Guid>> GetActiveInternshipIdsAsync(Guid studentProfileId, CancellationToken ct = default);
+
     Task AddAsync(Application application, CancellationToken ct = default);
 }
