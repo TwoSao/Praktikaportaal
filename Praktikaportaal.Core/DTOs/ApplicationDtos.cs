@@ -45,6 +45,9 @@ public class ApplicationDto
 
     public string? CoverLetter { get; set; }
 
+    /// <summary>True if the student has a CV; download it with GET /api/applications/{id}/cv.</summary>
+    public bool HasCv { get; set; }
+
     /// <example>Submitted</example>
     public ApplicationStatus Status { get; set; }
 
