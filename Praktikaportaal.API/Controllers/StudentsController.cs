@@ -14,11 +14,13 @@ public class StudentsController : ControllerBase
 {
     private readonly IStudentService _studentService;
     private readonly ICvService _cvService;
+    private readonly IRecommendationService _recommendationService;
 
-    public StudentsController(IStudentService studentService, ICvService cvService)
+    public StudentsController(IStudentService studentService, ICvService cvService, IRecommendationService recommendationService)
     {
         _studentService = studentService;
         _cvService = cvService;
+        _recommendationService = recommendationService;
     }
 
     /// <summary>Returns the logged-in student's profile with skills.</summary>
@@ -45,6 +47,21 @@ public class StudentsController : ControllerBase
     [ProducesResponseType(typeof(PagedResult<StudentProfileDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<StudentProfileDto>>> GetAll([FromQuery] PagingParameters paging, CancellationToken ct) =>
         Ok(await _studentService.GetStudentsAsync(paging, ct));
+
+    /// <summary>
+    /// Internship recommendations for a student, ranked by skill overlap
+    /// (student skills ∩ required skills / required skills × 100), highest first.
+    /// Allowed for the student themselves, the Service account (Worker) and Admin.
+    /// Use <c>?since=</c> to see only internships created after a given time.
+    /// </summary>
+    [Authorize(Roles = $"{Roles.Student},{Roles.Service},{Roles.Admin}")]
+    [HttpGet("{id:guid}/recommendations")]
+    [ProducesResponseType(typeof(PagedResult<RecommendationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PagedResult<RecommendationDto>>> GetRecommendations(
+        Guid id, [FromQuery] RecommendationQueryParameters query, CancellationToken ct) =>
+        Ok(await _recommendationService.GetRecommendationsAsync(id, query, User.ToCurrentUser(), ct));
 
     /// <summary>
     /// Uploads (or replaces) the student's CV. Multipart form field <c>file</c>; PDF or DOCX, max 5 MB.
