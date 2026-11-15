@@ -14,6 +14,12 @@ public interface IInternshipRepository
 
     /// <summary>Distinct fields and locations of published listings.</summary>
     Task<(IReadOnlyList<string> Fields, IReadOnlyList<string> Locations)> GetPublishedFilterValuesAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Published internships that still accept applications (deadline not passed), optionally only those
+    /// created after <paramref name="createdAfter"/>. Includes company and required skills.
+    /// </summary>
+    Task<IReadOnlyList<Internship>> GetOpenAsync(DateTime? createdAfter, CancellationToken ct = default);
+
     Task<IReadOnlyList<Internship>> GetByCompanyAsync(Guid companyProfileId, CancellationToken ct = default);
     Task AddAsync(Internship internship, CancellationToken ct = default);
 }
