@@ -13,6 +13,7 @@ public class ApplicationService : IApplicationService
     private readonly IInternshipRepository _internships;
     private readonly IStudentProfileRepository _students;
     private readonly INotificationRepository _notifications;
+    private readonly IApplicationNotifier _notifier;
     private readonly IUnitOfWork _unitOfWork;
 
     public ApplicationService(
@@ -20,8 +21,10 @@ public class ApplicationService : IApplicationService
         IInternshipRepository internships,
         IStudentProfileRepository students,
         INotificationRepository notifications,
+        IApplicationNotifier notifier,
         IUnitOfWork unitOfWork)
     {
+        _notifier = notifier;
         _applications = applications;
         _internships = internships;
         _students = students;
@@ -73,6 +76,15 @@ public class ApplicationService : IApplicationService
         }, ct);
 
         await _unitOfWork.SaveChangesAsync(ct);
+
+        // Real-time push to the company's open dashboards (after the data is safely saved).
+        await _notifier.ApplicationReceivedAsync(new ApplicationReceivedEvent(
+            internship.CompanyProfileId,
+            application.Id,
+            internship.Id,
+            internship.Title,
+            $"{studentProfile.User.FirstName} {studentProfile.User.LastName}".Trim(),
+            application.AppliedAt), ct);
 
         return MapToDto(application);
     }
