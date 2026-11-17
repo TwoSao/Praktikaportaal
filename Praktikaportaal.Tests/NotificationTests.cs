@@ -4,6 +4,7 @@ using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Entities;
 using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Core.Exceptions;
+using Praktikaportaal.Core.Interfaces;
 using Praktikaportaal.Core.Interfaces.Repositories;
 using Praktikaportaal.Core.Services;
 using Praktikaportaal.Infrastructure.Persistence;
@@ -143,7 +144,7 @@ public class ApplicationNotificationTests
 {
     private static ApplicationService CreateService(PraktikaportaalDbContext context) => new(
         new ApplicationRepository(context), new InternshipRepository(context), new StudentProfileRepository(context),
-        new NotificationRepository(context), new UnitOfWork(context));
+        new NotificationRepository(context), Mock.Of<IApplicationNotifier>(), new UnitOfWork(context));
 
     private static async Task<(PraktikaportaalDbContext Context, StudentProfile Student, CompanyProfile Company, Internship Internship)> SeedAsync()
     {
