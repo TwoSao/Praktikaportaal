@@ -6,4 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Only for the shared DTO contracts (request/response shapes); all data still comes through the HTTP API. -->
+    <ProjectReference Include="..\Praktikaportaal.Core\Praktikaportaal.Core.csproj" />
+  </ItemGroup>
+
 </Project>

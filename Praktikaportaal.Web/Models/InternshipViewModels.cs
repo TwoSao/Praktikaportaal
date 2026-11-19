@@ -1,64 +1,36 @@
-using System.ComponentModel.DataAnnotations;
+using Praktikaportaal.Core.DTOs;
 
 namespace Praktikaportaal.Web.Models;
 
-public class InternshipItemViewModel
+/// <summary>The public internship list with its filter form.</summary>
+public class InternshipListViewModel
 {
-    public Guid Id { get; set; }
-    public Guid CompanyProfileId { get; set; }
-    public string CompanyName { get; set; } = string.Empty;
-    public string? CompanyLocation { get; set; }
-    public string? CompanyWebsite { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string? Requirements { get; set; }
-    public string? Location { get; set; }
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
-    public DateTime? ApplicationDeadline { get; set; }
-    public bool IsRemote { get; set; }
-    public string Status { get; set; } = "Published";
-    public DateTime CreatedAt { get; set; }
-    public List<string> Skills { get; set; } = [];
-    public int ApplicationsCount { get; set; }
+    public required PagedResult<InternshipDto> Result { get; init; }
+    public required InternshipQueryParameters Query { get; init; }
+    public required InternshipFiltersDto Filters { get; init; }
+
+    public bool HasActiveFilter =>
+        !string.IsNullOrWhiteSpace(Query.Search) || !string.IsNullOrWhiteSpace(Query.Field) ||
+        !string.IsNullOrWhiteSpace(Query.Location) || Query.IsRemote.HasValue;
 }
 
-public class CreateInternshipViewModel
+public class InternshipDetailsViewModel
 {
-    [Required(ErrorMessage = "Praktika pealkiri on kohustuslik")]
-    [MaxLength(200)]
-    public string Title { get; set; } = string.Empty;
+    public required InternshipDto Internship { get; init; }
 
-    [Required(ErrorMessage = "Kirjeldus on kohustuslik")]
-    [MaxLength(5000)]
-    public string Description { get; set; } = string.Empty;
+    /// <summary>The logged-in student already has an active (not withdrawn) application for this internship.</summary>
+    public ApplicationDto? ExistingApplication { get; init; }
 
-    [MaxLength(3000)]
-    public string? Requirements { get; set; }
+    /// <summary>The logged-in company owns the internship, or the user is an admin.</summary>
+    public bool CanManage { get; init; }
 
-    [MaxLength(150)]
-    public string? Location { get; set; }
-
-    [DataType(DataType.Date)]
-    public DateTime? StartDate { get; set; }
-
-    [DataType(DataType.Date)]
-    public DateTime? EndDate { get; set; }
-
-    [DataType(DataType.Date)]
-    public DateTime? ApplicationDeadline { get; set; }
-
-    public bool IsRemote { get; set; }
+    public bool IsAdmin { get; init; }
 }
 
-public class ApplyViewModel
+public class HomeViewModel
 {
-    public Guid InternshipId { get; set; }
-    public string InternshipTitle { get; set; } = string.Empty;
-    public string CompanyName { get; set; } = string.Empty;
-
-    [MaxLength(5000)]
-    [Display(Name = "Kaaskiri / Motivatsioonikiri")]
-    public string? CoverLetter { get; set; }
+    public IReadOnlyList<InternshipDto> Latest { get; init; } = [];
+    public InternshipFiltersDto Filters { get; init; } = new();
+    public int TotalInternships { get; init; }
+    public bool ApiAvailable { get; init; } = true;
 }
-

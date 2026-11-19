@@ -1,7 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Praktikaportaal.Core.DTOs;
+using Praktikaportaal.Core.Enums;
 using Praktikaportaal.Web.Models;
 using Praktikaportaal.Web.Services;
 
@@ -16,145 +19,156 @@ public class AccountController : Controller
         _api = api;
     }
 
-    [HttpGet]
-    public IActionResult Login(string? returnUrl = null)
-    {
-        if (User.Identity?.IsAuthenticated == true)
-            return RedirectToAction("Index", "Home");
+    // ── login ───────────────────────────────────────────────────────────────
 
-        return View(new LoginViewModel { ReturnUrl = returnUrl });
-    }
+    [HttpGet]
+    public IActionResult Login(string? returnUrl = null) =>
+        User.Identity?.IsAuthenticated == true
+            ? RedirectToLocal(returnUrl, User.FindFirstValue(ClaimTypes.Role))
+            : View(new LoginViewModel { ReturnUrl = returnUrl });
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid)
             return View(model);
 
-        var (success, token, error, user) = await _api.LoginAsync(model);
-        if (!success)
+        try
         {
-            ModelState.AddModelError(string.Empty, error ?? "Sisselogimine ebaõnnestus.");
+            var result = await _api.LoginAsync(new LoginDto { Email = model.Email, Password = model.Password });
+            await SignInAsync(result);
+            return RedirectToLocal(model.ReturnUrl, result.User.Role.ToString());
+        }
+        catch (ApiException ex) when (ex.IsUnauthorized || ex.IsUserError)
+        {
+            // Same wording for "unknown e-mail" and "wrong password", as the API does.
+            ModelState.AddModelError(string.Empty, "Vale e-posti aadress või parool.");
+            model.Password = string.Empty;
             return View(model);
         }
-
-        await SignInUserAsync(token!, user);
-
-        if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-            return Redirect(model.ReturnUrl);
-
-        string role = user.GetProperty("role").GetString();
-        return role switch
-        {
-            "Company" => RedirectToAction("Dashboard", "Company"),
-            "Student" => RedirectToAction("Dashboard", "Student"),
-            _ => RedirectToAction("Index", "Internships")
-        };
     }
+
+    // ── registration ────────────────────────────────────────────────────────
 
     [HttpGet]
-    public IActionResult RegisterStudent()
-    {
-        if (User.Identity?.IsAuthenticated == true)
-            return RedirectToAction("Index", "Home");
-
-        return View(new RegisterStudentViewModel());
-    }
+    public IActionResult RegisterStudent() => User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View(new RegisterStudentViewModel());
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RegisterStudent(RegisterStudentViewModel model)
     {
         if (!ModelState.IsValid)
             return View(model);
 
-        var (success, token, error, user) = await _api.RegisterStudentAsync(model);
-        if (!success)
+        try
         {
-            ModelState.AddModelError(string.Empty, error ?? "Registreerimine ebaõnnestus.");
+            var result = await _api.RegisterStudentAsync(new RegisterStudentDto
+            {
+                Email = model.Email, Password = model.Password, FirstName = model.FirstName, LastName = model.LastName,
+                SchoolName = model.SchoolName, StudyProgram = model.StudyProgram, Course = model.Course,
+                PhoneNumber = Blank(model.PhoneNumber), Location = Blank(model.Location)
+            });
+            await SignInAsync(result);
+            TempData["SuccessMessage"] = $"Tere tulemast, {result.User.FirstName}! Konto on loodud.";
+            return RedirectToAction("Index", "Internships");
+        }
+        catch (ApiException ex) when (ex.IsUserError)
+        {
+            ModelState.AddApiError(ex);
             return View(model);
         }
-
-        await SignInUserAsync(token!, user);
-        return RedirectToAction("Dashboard", "Student");
     }
 
     [HttpGet]
-    public IActionResult RegisterCompany()
-    {
-        if (User.Identity?.IsAuthenticated == true)
-            return RedirectToAction("Index", "Home");
-
-        return View(new RegisterCompanyViewModel());
-    }
+    public IActionResult RegisterCompany() => User.Identity?.IsAuthenticated == true ? RedirectToAction("Index", "Home") : View(new RegisterCompanyViewModel());
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> RegisterCompany(RegisterCompanyViewModel model)
     {
         if (!ModelState.IsValid)
             return View(model);
 
-        var (success, token, error, user) = await _api.RegisterCompanyAsync(model);
-        if (!success)
+        try
         {
-            ModelState.AddModelError(string.Empty, error ?? "Registreerimine ebaõnnestus.");
+            var result = await _api.RegisterCompanyAsync(new RegisterCompanyDto
+            {
+                Email = model.Email, Password = model.Password, FirstName = model.FirstName, LastName = model.LastName,
+                CompanyName = model.CompanyName, RegistrationCode = model.RegistrationCode,
+                Description = Blank(model.Description), Website = Blank(model.Website), Address = Blank(model.Address),
+                ContactEmail = Blank(model.ContactEmail), ContactPhone = Blank(model.ContactPhone)
+            });
+            await SignInAsync(result);
+            TempData["SuccessMessage"] = $"Tere tulemast, {result.User.FirstName}! Ettevõtte konto on loodud.";
+            return RedirectToAction("Index", "Company");
+        }
+        catch (ApiException ex) when (ex.IsUserError)
+        {
+            ModelState.AddApiError(ex);
             return View(model);
         }
-
-        await SignInUserAsync(token!, user);
-        return RedirectToAction("Dashboard", "Company");
     }
 
+    // ── logout & access denied ──────────────────────────────────────────────
+
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        TempData["SuccessMessage"] = "Oled välja logitud.";
         return RedirectToAction("Index", "Home");
     }
 
     [HttpGet]
     public IActionResult AccessDenied()
     {
+        Response.StatusCode = StatusCodes.Status403Forbidden;
         return View();
     }
 
-    private async Task SignInUserAsync(string token, dynamic user)
-    {
-        string id = user.GetProperty("id").GetString()!;
-        string email = user.GetProperty("email").GetString()!;
-        string firstName = user.GetProperty("firstName").GetString()!;
-        string lastName = user.GetProperty("lastName").GetString()!;
-        string role = user.GetProperty("role").GetString()!;
-        string? profileId = user.TryGetProperty("profileId", out System.Text.Json.JsonElement p) && p.ValueKind != System.Text.Json.JsonValueKind.Null ? p.GetString() : null;
+    // ── helpers ─────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Stores the user's data and the API's JWT in the auth cookie. The cookie expires when the JWT does,
+    /// so the site never keeps a token the API would reject.
+    /// </summary>
+    private async Task SignInAsync(AuthResultDto result)
+    {
+        var user = result.User;
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, id),
-            new(ClaimTypes.Name, $"{firstName} {lastName}"),
-            new(ClaimTypes.Email, email),
-            new(ClaimTypes.Role, role),
-            new("jwt_token", token)
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}".Trim()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new(BearerTokenHandler.TokenClaim, result.Token)
         };
+        if (user.ProfileId.HasValue)
+            claims.Add(new Claim("profile_id", user.ProfileId.Value.ToString()));
 
-        if (!string.IsNullOrEmpty(profileId))
+        var properties = new AuthenticationProperties
         {
-            claims.Add(new Claim("profile_id", profileId));
-        }
-
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
+            IsPersistent = true,
+            ExpiresUtc = JwtExpiry.TryGetExpiry(result.Token) ?? DateTimeOffset.UtcNow.AddHours(24)
+        };
 
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
-            principal,
-            new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24)
-            });
+            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+            properties);
     }
-}
 
+    /// <summary>Back to where the user came from (local URLs only - no open redirect), otherwise to their own start page.</summary>
+    private IActionResult RedirectToLocal(string? returnUrl, string? role)
+    {
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return LocalRedirect(returnUrl);
+
+        return role switch
+        {
+            nameof(UserRole.Company) => RedirectToAction("Index", "Company"),
+            nameof(UserRole.Admin) => RedirectToAction("Statistics", "Admin"),
+            _ => RedirectToAction("Index", "Internships")
+        };
+    }
+
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
