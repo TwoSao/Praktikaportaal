@@ -1,8 +1,58 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Avaleht";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="p-5 mb-5 hero-banner shadow">
+    <div class="container-fluid py-4">
+        <h1 class="display-5 fw-bold">Praktikaportaal</h1>
+        <p class="col-md-8 fs-5">
+            Tallinna Tööstushariduskeskuse (TTHK) tarkvaraarenduse õppurite ja IT-ettevõtete koostööplatvorm.
+            Leia endale sobiv praktika või leia motiveeritud noored arendajad oma meeskonda.
+        </p>
+        <div class="mt-4 d-flex gap-3">
+            <a class="btn btn-light btn-lg px-4 fw-semibold text-primary" asp-controller="Internships" asp-action="Index">
+                🔍 Sirvi praktikakohti
+            </a>
+            @if (User.Identity?.IsAuthenticated != true)
+            {
+                <a class="btn btn-outline-light btn-lg px-4" asp-controller="Account" asp-action="RegisterStudent">
+                    Liitu õppurina
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="fs-1 mb-2">👨‍💻</div>
+                <h3 class="card-title fw-bold">Õppurile</h3>
+                <p class="card-text text-muted">
+                    Loo oma profiil, tutvu aktiivsete praktikaülesannetega, kandideeri sobivatele kohtadele ja jälgi oma avalduste staatust reaalajas.
+                </p>
+                <a asp-controller="Internships" asp-action="Index" class="btn btn-outline-primary">Vaata pakkumisi &rarr;</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="fs-1 mb-2">🏢</div>
+                <h3 class="card-title fw-bold">Ettevõttele</h3>
+                <p class="card-text text-muted">
+                    Avalda oma praktika- ja juuniorpositsioonide kuulutused, vaata läbi TTHK tarkvaraarendajate kandideerimisavaldusi ning leia oma meeskonda uusi talente.
+                </p>
+                @if (User.IsInRole("Company"))
+                {
+                    <a asp-controller="Company" asp-action="Create" class="btn btn-outline-success">+ Lisa kuulutus &rarr;</a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="RegisterCompany" class="btn btn-outline-success">Registreeri ettevõte &rarr;</a>
+                }
+            </div>
+        </div>
+    </div>
 </div>
