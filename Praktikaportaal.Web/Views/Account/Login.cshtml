@@ -1,0 +1,51 @@
+@model Praktikaportaal.Web.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Logi sisse";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body p-4">
+                <h3 class="fw-bold mb-3 text-center">Logi sisse</h3>
+                <p class="text-muted text-center mb-4 small">Sisesta oma e-post ja parool süsteemi sisenemiseks</p>
+
+                <form asp-action="Login" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold">E-post</label>
+                        <input asp-for="Email" class="form-control" placeholder="nimi@e-post.ee" autofocus />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold">Parool</label>
+                        <input asp-for="Password" class="form-control" placeholder="••••••••" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-3">Logi sisse</button>
+                </form>
+
+                <hr class="my-4" />
+
+                <div class="text-center small text-muted">
+                    Pole veel kontot?
+                    <br />
+                    <a asp-action="RegisterStudent" class="fw-semibold">Registreeru õppurina</a>
+                    või
+                    <a asp-action="RegisterCompany" class="fw-semibold">ettevõttena</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
