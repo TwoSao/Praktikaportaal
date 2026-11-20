@@ -1,0 +1,88 @@
+@using Praktikaportaal.Core.Enums
+@using Praktikaportaal.Web.Services
+@model InternshipDetailsViewModel
+@{
+    var i = Model.Internship;
+    ViewData["Title"] = i.Title;
+    bool open = i.Status == InternshipStatus.Published && (!i.ApplicationDeadline.HasValue || i.ApplicationDeadline.Value >= DateTime.UtcNow);
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">Praktikakohad</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@i.Title</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="mb-2">
+                    <span class="badge bg-primary-subtle text-primary-emphasis">@i.Field</span>
+                    @if (i.IsRemote) { <span class="badge bg-success-subtle text-success-emphasis">Kaugtöö</span> }
+                    @if (i.Status != InternshipStatus.Published) { <span class="badge @i.Status.BadgeClass()">@i.Status.Label()</span> }
+                </div>
+                <h1 class="h2">@i.Title</h1>
+                <p class="text-muted mb-4">
+                    @i.CompanyName
+                    @if (!string.IsNullOrWhiteSpace(i.Location)) { <text> · @i.Location</text> }
+                    @if (!string.IsNullOrWhiteSpace(i.CompanyWebsite)) { <text> · <a href="@i.CompanyWebsite" rel="noopener noreferrer" target="_blank">veebileht</a></text> }
+                </p>
+
+                <h2 class="h5">Kirjeldus</h2>
+                <p class="pre-wrap">@i.Description</p>
+
+                @if (!string.IsNullOrWhiteSpace(i.Requirements))
+                {
+                    <h2 class="h5 mt-4">Nõuded</h2>
+                    <p class="pre-wrap">@i.Requirements</p>
+                }
+
+                @if (i.Skills.Count > 0)
+                {
+                    <h2 class="h5 mt-4">Vajalikud oskused</h2>
+                    <div>@foreach (var skill in i.Skills) { <span class="skill-chip">@skill</span> }</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-body">
+                <dl class="row small mb-0">
+                    <dt class="col-5">Tähtaeg</dt><dd class="col-7">@UiText.Date(i.ApplicationDeadline)</dd>
+                    <dt class="col-5">Algus</dt><dd class="col-7">@UiText.Date(i.StartDate)</dd>
+                    <dt class="col-5">Lõpp</dt><dd class="col-7">@UiText.Date(i.EndDate)</dd>
+                    <dt class="col-5">Avaldatud</dt><dd class="col-7">@UiText.Date(i.CreatedAt)</dd>
+                    <dt class="col-5">Avaldusi</dt><dd class="col-7">@i.ApplicationsCount</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                @if (Model.ExistingApplication is { } existing)
+                {
+                    <p class="mb-1">Sa oled sellele kohale avalduse esitanud.</p>
+                    <p class="mb-0"><span class="badge @existing.Status.BadgeClass()">@existing.Status.Label()</span></p>
+                }
+                else if (User.Identity?.IsAuthenticated != true)
+                {
+                    <p>Avalduse esitamiseks logi sisse õppurina.</p>
+                    <a class="btn btn-primary w-100 mb-2" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Context.Request.Path">Logi sisse</a>
+                    <a class="btn btn-outline-primary w-100" asp-controller="Account" asp-action="RegisterStudent">Registreeru õppurina</a>
+                }
+                else if (!open)
+                {
+                    <div class="alert alert-secondary mb-0">See praktikakoht ei võta avaldusi vastu (tähtaeg möödas või kuulutus suletud).</div>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">Avaldusi saavad esitada õppurid.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

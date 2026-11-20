@@ -1,8 +1,85 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model HomeViewModel
+@{
+    ViewData["Title"] = "Avaleht";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero-banner p-4 p-md-5 mb-5 shadow">
+    <h1 class="display-6 fw-bold">Leia oma järgmine praktikakoht</h1>
+    <p class="lead mb-4">Praktikaportaal ühendab õppurid ja ettevõtted: sirvi kuulutusi, esita avaldus ja jälgi selle staatust.</p>
+
+    <form asp-controller="Internships" asp-action="Index" method="get" class="row g-2 align-items-end">
+        <div class="col-md-5">
+            <label for="heroSearch" class="form-label small mb-1">Märksõna</label>
+            <input id="heroSearch" name="search" class="form-control" placeholder="nt arendaja, turundus, disain…" />
+        </div>
+        <div class="col-md-3">
+            <label for="heroField" class="form-label small mb-1">Valdkond</label>
+            <select id="heroField" name="field" class="form-select">
+                <option value="">Kõik valdkonnad</option>
+                @foreach (var field in Model.Filters.Fields) { <option value="@field">@field</option> }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="heroLocation" class="form-label small mb-1">Asukoht</label>
+            <select id="heroLocation" name="location" class="form-select">
+                <option value="">Kõik</option>
+                @foreach (var location in Model.Filters.Locations) { <option value="@location">@location</option> }
+            </select>
+        </div>
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-warning fw-semibold">Otsi</button>
+        </div>
+    </form>
+</section>
+
+@if (!Model.ApiAvailable)
+{
+    <div class="alert alert-warning">
+        Praktikaportaali server ei vasta praegu, seetõttu ei saa kuulutusi näidata. Proovi mõne hetke pärast uuesti.
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-end mb-3">
+        <h2 class="h4 mb-0">Uusimad praktikakohad</h2>
+        <a asp-controller="Internships" asp-action="Index">Vaata kõiki (@Model.TotalInternships) »</a>
+    </div>
+
+    @if (Model.Latest.Count == 0)
+    {
+        <div class="empty-state"><div class="big">📭</div><p>Praegu ei ole ühtegi avatud praktikakohta.</p></div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+            @foreach (var internship in Model.Latest)
+            {
+                <partial name="_InternshipCard" model="internship" />
+            }
+        </div>
+    }
+}
+
+@if (User.Identity?.IsAuthenticated != true)
+{
+    <section class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="h5">Õppurile</h3>
+                    <p class="text-muted">Loo profiil, lisa oskused ja CV ning saad soovitusi sinu oskustele sobivate kohtade kohta.</p>
+                    <a class="btn btn-primary" asp-controller="Account" asp-action="RegisterStudent">Registreeru õppurina</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h3 class="h5">Ettevõttele</h3>
+                    <p class="text-muted">Avalda praktikakohti, saa avaldused reaalajas ja juhi kandidaate intervjuust vastuvõtuni.</p>
+                    <a class="btn btn-outline-primary" asp-controller="Account" asp-action="RegisterCompany">Registreeru ettevõttena</a>
+                </div>
+            </div>
+        </div>
+    </section>
+}

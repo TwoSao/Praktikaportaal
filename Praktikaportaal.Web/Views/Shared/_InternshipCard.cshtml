@@ -1,0 +1,29 @@
+@using Praktikaportaal.Web.Services
+@model Praktikaportaal.Core.DTOs.InternshipDto
+@{
+    bool soon = Model.ApplicationDeadline.HasValue && (Model.ApplicationDeadline.Value - DateTime.UtcNow).TotalDays is >= 0 and <= 7;
+}
+<div class="col">
+    <div class="card card-internship h-100 shadow-sm">
+        <div class="card-body d-flex flex-column">
+            <div class="mb-2">
+                <span class="badge bg-primary-subtle text-primary-emphasis">@Model.Field</span>
+                @if (Model.IsRemote) { <span class="badge bg-success-subtle text-success-emphasis">Kaugtöö</span> }
+            </div>
+            <h5 class="card-title mb-1">
+                <a class="stretched-link" asp-controller="Internships" asp-action="Details" asp-route-id="@Model.Id">@Model.Title</a>
+            </h5>
+            <div class="text-muted mb-2">@Model.CompanyName@(string.IsNullOrWhiteSpace(Model.Location) ? "" : " · " + Model.Location)</div>
+            <p class="card-text small flex-grow-1">
+                @(Model.Description.Length > 140 ? Model.Description[..140] + "…" : Model.Description)
+            </p>
+            <div class="mb-2">
+                @foreach (var skill in Model.Skills.Take(4)) { <span class="skill-chip">@skill</span> }
+                @if (Model.Skills.Count > 4) { <span class="skill-chip">+@(Model.Skills.Count - 4)</span> }
+            </div>
+            <div class="small @(soon ? "deadline-soon" : "text-muted")">
+                Tähtaeg: @UiText.Date(Model.ApplicationDeadline)
+            </div>
+        </div>
+    </div>
+</div>
