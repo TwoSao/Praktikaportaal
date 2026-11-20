@@ -1,5 +1,7 @@
 html {
-  font-size: 14px;
+  font-size: 15px;
+  position: relative;
+  min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -12,13 +14,158 @@ html {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+body {
+  background-color: #f6f8fb;
 }
 
-body {
-  margin-bottom: 60px;
+.badge-role {
+  font-size: 0.75rem;
+  vertical-align: middle;
+}
+
+/* ── hero ─────────────────────────────────────────────────────────────── */
+.hero-banner {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+  color: #fff;
+  border-radius: 14px;
+}
+
+/* ── internship cards ─────────────────────────────────────────────────── */
+.card-internship {
+  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  border: 0;
+}
+
+.card-internship:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+}
+
+.card-internship .stretched-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.skill-chip {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  margin: 0 0.25rem 0.25rem 0;
+  border-radius: 999px;
+  background: #e8f0fe;
+  color: #1a4fb4;
+}
+
+.skill-chip.matched {
+  background: #d1f2de;
+  color: #146c43;
+}
+
+.skill-chip.missing {
+  background: #f1f3f5;
+  color: #6c757d;
+  text-decoration: line-through;
+}
+
+.deadline-soon {
+  color: #b02a37;
+  font-weight: 600;
+}
+
+/* ── generic helpers ──────────────────────────────────────────────────── */
+.page-title {
+  font-weight: 700;
+}
+
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6c757d;
+}
+
+.empty-state .big {
+  font-size: 2.5rem;
+}
+
+.table-actions form {
+  display: inline;
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+}
+
+/* ── match bar (recommendations) ──────────────────────────────────────── */
+.match-bar {
+  height: 0.6rem;
+  background: #e9ecef;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.match-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #20c997, #198754);
+}
+
+/* ── statistics bars ──────────────────────────────────────────────────── */
+.stat-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 14rem) 1fr 3rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.stat-bar {
+  height: 1.1rem;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.stat-bar > span {
+  display: block;
+  height: 100%;
+  background: #0d6efd;
+  min-width: 2px;
+}
+
+.stat-card .value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* ── live updates ─────────────────────────────────────────────────────── */
+.live-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #adb5bd;
+  margin-right: 0.35rem;
+}
+
+.live-dot.on {
+  background: #198754;
+  box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.6);
+  animation: live-pulse 2s infinite;
+}
+
+@keyframes live-pulse {
+  70% { box-shadow: 0 0 0 0.5rem rgba(25, 135, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+}
+
+.row-new {
+  animation: row-flash 3s ease-out;
+}
+
+@keyframes row-flash {
+  from { background-color: #fff3cd; }
+  to { background-color: transparent; }
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {

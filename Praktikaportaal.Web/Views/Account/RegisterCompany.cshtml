@@ -1,0 +1,98 @@
+@model RegisterCompanyViewModel
+@{
+    ViewData["Title"] = "Registreeru ettevõttena";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-1">Registreeru ettevõttena</h1>
+                <p class="text-muted">Pärast registreerimist saad avaldada praktikakohti ja võtta vastu õppurite avaldusi.</p>
+
+                <form asp-action="RegisterCompany" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <h2 class="h6 text-uppercase text-muted">Ettevõte</h2>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-7">
+                            <label asp-for="CompanyName" class="form-label"></label>
+                            <input asp-for="CompanyName" class="form-control" autocomplete="organization" />
+                            <span asp-validation-for="CompanyName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-5">
+                            <label asp-for="RegistrationCode" class="form-label"></label>
+                            <input asp-for="RegistrationCode" class="form-control" />
+                            <span asp-validation-for="RegistrationCode" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" rows="3" class="form-control"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Website" class="form-label"></label>
+                            <input asp-for="Website" class="form-control" placeholder="https://" />
+                            <span asp-validation-for="Website" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" autocomplete="street-address" />
+                            <span asp-validation-for="Address" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ContactEmail" class="form-label"></label>
+                            <input asp-for="ContactEmail" class="form-control" />
+                            <span asp-validation-for="ContactEmail" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ContactPhone" class="form-label"></label>
+                            <input asp-for="ContactPhone" class="form-control" />
+                            <span asp-validation-for="ContactPhone" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <h2 class="h6 text-uppercase text-muted">Kontaktisik ja sisselogimine</h2>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" autocomplete="family-name" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" autocomplete="email" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                            <div class="form-text">Vähemalt 8 märki, sh täht ja number.</div>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label"></label>
+                            <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Loo ettevõtte konto</button>
+                    </div>
+                </form>
+
+                <p class="text-center small mt-3 mb-0">Konto juba olemas? <a asp-action="Login">Logi sisse</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

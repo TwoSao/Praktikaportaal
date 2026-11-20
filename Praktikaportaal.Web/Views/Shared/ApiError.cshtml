@@ -1,0 +1,10 @@
+@model string?
+@{
+    ViewData["Title"] = "Viga";
+}
+<div class="empty-state">
+    <div class="big">⚠️</div>
+    <h1 class="h3">Midagi läks valesti</h1>
+    <p>@(Model ?? "Palun proovi mõne hetke pärast uuesti.")</p>
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Avalehele</a>
+</div>

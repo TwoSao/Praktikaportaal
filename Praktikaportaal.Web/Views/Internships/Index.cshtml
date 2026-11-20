@@ -1,0 +1,88 @@
+@using Praktikaportaal.Core.DTOs
+@using Praktikaportaal.Web.Services
+@model InternshipListViewModel
+@{
+    ViewData["Title"] = "Praktikakohad";
+    var q = Model.Query;
+}
+
+<h1 class="page-title h2 mb-3">Praktikakohad</h1>
+
+<form asp-action="Index" method="get" class="card card-body shadow-sm border-0 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-lg-4">
+            <label for="search" class="form-label small mb-1">Otsing</label>
+            <input id="search" name="search" value="@q.Search" class="form-control" placeholder="Pealkiri, ettevõte, kirjeldus…" />
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <label for="field" class="form-label small mb-1">Valdkond</label>
+            <select id="field" name="field" class="form-select">
+                <option value="">Kõik</option>
+                @foreach (var field in Model.Filters.Fields)
+                {
+                    <option value="@field" selected="@string.Equals(field, q.Field, StringComparison.OrdinalIgnoreCase)">@field</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <label for="location" class="form-label small mb-1">Asukoht</label>
+            <input id="location" name="location" value="@q.Location" list="locationOptions" class="form-control" placeholder="nt Tallinn" />
+            <datalist id="locationOptions">
+                @foreach (var location in Model.Filters.Locations) { <option value="@location"></option> }
+            </datalist>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <label for="sort" class="form-label small mb-1">Järjestus</label>
+            <select id="sort" name="sort" class="form-select">
+                @foreach (var sort in Enum.GetValues<InternshipSort>())
+                {
+                    <option value="@sort" selected="@(q.Sort == sort)">@sort.Label()</option>
+                }
+            </select>
+        </div>
+        <div class="col-lg-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Otsi</button>
+            @if (Model.HasActiveFilter || q.Sort != InternshipSort.Newest)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Tühjenda filtrid">✕</a>
+            }
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isRemote" name="isRemote" value="true" checked="@(q.IsRemote == true)" />
+                <label class="form-check-label" for="isRemote">Ainult kaugtöö</label>
+            </div>
+        </div>
+    </div>
+</form>
+
+<p class="text-muted">
+    @if (Model.Result.TotalCount == 0)
+    {
+        <text>Ühtegi praktikakohta ei leitud.</text>
+    }
+    else
+    {
+        <text>Leitud <strong>@Model.Result.TotalCount</strong> praktikakohta (lehekülg @Model.Result.Page / @Model.Result.TotalPages).</text>
+    }
+</p>
+
+@if (Model.Result.Items.Count == 0)
+{
+    <div class="empty-state">
+        <div class="big">🔎</div>
+        <p>@(Model.HasActiveFilter ? "Proovi otsingut laiendada või filtreid eemaldada." : "Praegu ei ole ühtegi avatud praktikakohta.")</p>
+        @if (Model.HasActiveFilter) { <a asp-action="Index" class="btn btn-outline-primary">Näita kõiki</a> }
+    </div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        @foreach (var internship in Model.Result.Items)
+        {
+            <partial name="_InternshipCard" model="internship" />
+        }
+    </div>
+
+    <partial name="_Pagination" model="new PaginationModel(Model.Result.Page, Model.Result.TotalPages)" />
+}

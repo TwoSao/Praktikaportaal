@@ -1,0 +1,84 @@
+@model RegisterStudentViewModel
+@{
+    ViewData["Title"] = "Registreeru õppurina";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-1">Registreeru õppurina</h1>
+                <p class="text-muted">Pärast registreerimist saad esitada avaldusi ja näha oma oskustele sobivaid praktikakohti.</p>
+
+                <form asp-action="RegisterStudent" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" autocomplete="family-name" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" autocomplete="email" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                            <div class="form-text">Vähemalt 8 märki, sh täht ja number.</div>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label"></label>
+                            <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="SchoolName" class="form-label"></label>
+                            <input asp-for="SchoolName" class="form-control" />
+                            <span asp-validation-for="SchoolName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="StudyProgram" class="form-label"></label>
+                            <input asp-for="StudyProgram" class="form-control" placeholder="nt Noorem tarkvaraarendaja" />
+                            <span asp-validation-for="StudyProgram" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Course" class="form-label"></label>
+                            <input asp-for="Course" type="number" min="1" max="6" class="form-control" />
+                            <span asp-validation-for="Course" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control" autocomplete="tel" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" placeholder="nt Tallinn" />
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Loo konto</button>
+                    </div>
+                </form>
+
+                <p class="text-center small mt-3 mb-0">Konto juba olemas? <a asp-action="Login">Logi sisse</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
