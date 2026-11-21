@@ -1,0 +1,78 @@
+@using Praktikaportaal.Web.Services
+@model RecommendationsViewModel
+@{
+    ViewData["Title"] = "Soovitused";
+    double[] thresholds = [1, 25, 50, 75];
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+    <h1 class="page-title h2 mb-0">Soovitused sulle</h1>
+    <form asp-action="Recommendations" method="get" class="d-flex gap-2 align-items-center">
+        <label for="minOverlap" class="small text-muted mb-0">Sobivus vähemalt</label>
+        <select id="minOverlap" name="minOverlap" class="form-select form-select-sm" onchange="this.form.submit()">
+            @foreach (var t in thresholds)
+            {
+                <option value="@t" selected="@(Model.MinOverlap == t)">@(t <= 1 ? "kõik sobivad" : t + " %")</option>
+            }
+        </select>
+        <noscript><button type="submit" class="btn btn-sm btn-outline-primary">Filtreeri</button></noscript>
+    </form>
+</div>
+<p class="text-muted">
+    Sobivus = mitu praktikakoha nõutud oskustest sul on. Arvestame ainult avatud kohti, kuhu sa pole veel avaldust esitanud.
+</p>
+
+@if (!Model.HasSkills)
+{
+    <div class="alert alert-info">
+        Sul ei ole profiilis ühtegi oskust, seega ei saa me sobivust arvutada.
+        <a asp-action="Profile">Lisa oskused profiilis</a>.
+    </div>
+}
+else if (Model.Result.Items.Count == 0)
+{
+    <div class="empty-state">
+        <div class="big">🎯</div>
+        <p>@(Model.MinOverlap > 1 ? "Selle sobivusega kohti ei leitud. Proovi madalamat piiri." : "Praegu ei ole sinu oskustele sobivaid avatud kohti.")</p>
+        <a class="btn btn-outline-primary" asp-controller="Internships" asp-action="Index">Vaata kõiki praktikakohti</a>
+    </div>
+}
+else
+{
+    <p class="text-muted small">Leitud @Model.Result.TotalCount sobivat praktikakohta.</p>
+    <div class="vstack gap-3">
+        @foreach (var r in Model.Result.Items)
+        {
+            var i = r.Internship;
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="h5 mb-1">
+                                <a asp-controller="Internships" asp-action="Details" asp-route-id="@i.Id" class="text-decoration-none">@i.Title</a>
+                            </h2>
+                            <div class="text-muted small mb-2">
+                                @i.CompanyName@(string.IsNullOrWhiteSpace(i.Location) ? "" : " · " + i.Location) · tähtaeg @UiText.Date(i.ApplicationDeadline)
+                            </div>
+                            <div>
+                                @foreach (var skill in r.MatchedSkills) { <span class="skill-chip matched" title="Sul on see oskus">✔ @skill</span> }
+                                @foreach (var skill in r.MissingSkills) { <span class="skill-chip missing" title="Seda oskust sul veel ei ole">@skill</span> }
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted">Sobivus</span><strong>@r.OverlapPercent.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) %</strong>
+                            </div>
+                            <div class="match-bar mb-3" role="progressbar" aria-valuenow="@((int)r.OverlapPercent)" aria-valuemin="0" aria-valuemax="100">
+                                <span style="width: @r.OverlapPercent.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></span>
+                            </div>
+                            <a class="btn btn-primary btn-sm w-100" asp-controller="Internships" asp-action="Apply" asp-route-id="@i.Id">Esita avaldus</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <partial name="_Pagination" model="new PaginationModel(Model.Result.Page, Model.Result.TotalPages)" />
+}

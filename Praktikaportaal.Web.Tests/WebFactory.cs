@@ -48,6 +48,10 @@ public class WebFactory : WebApplicationFactory<Program>
         return await client.PostAsync(path, new FormUrlEncodedContent(data));
     }
 
+    /// <summary>Path + query of a redirect's Location (the cookie middleware answers with an absolute URL).</summary>
+    public static string LocationOf(HttpResponseMessage response) =>
+        new Uri(new Uri("http://localhost"), response.Headers.Location!.OriginalString).PathAndQuery;
+
     public static async Task<string> BodyAsync(HttpResponseMessage response) =>
         WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 

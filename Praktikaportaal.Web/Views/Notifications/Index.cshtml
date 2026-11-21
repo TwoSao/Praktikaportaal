@@ -1,0 +1,61 @@
+@using Praktikaportaal.Web.Services
+@model NotificationsViewModel
+@{
+    ViewData["Title"] = "Teated";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h1 class="page-title h2 mb-0">
+        Teated
+        @if (Model.Result.UnreadCount > 0) { <span class="badge rounded-pill bg-danger fs-6 align-middle">@Model.Result.UnreadCount</span> }
+    </h1>
+    <div class="d-flex gap-2">
+        @if (Model.UnreadOnly)
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Näita kõiki</a>
+        }
+        else
+        {
+            <a asp-action="Index" asp-route-unreadOnly="true" class="btn btn-outline-secondary btn-sm">Ainult lugemata</a>
+        }
+        @if (Model.Result.UnreadCount > 0)
+        {
+            <form asp-action="MarkAllRead" method="post">
+                <button type="submit" class="btn btn-outline-primary btn-sm">Märgi kõik loetuks</button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (Model.Result.Items.Count == 0)
+{
+    <div class="empty-state">
+        <div class="big">🔔</div>
+        <p>@(Model.UnreadOnly ? "Lugemata teateid ei ole." : "Sul ei ole veel ühtegi teadet.")</p>
+    </div>
+}
+else
+{
+    <div class="list-group shadow-sm">
+        @foreach (var n in Model.Result.Items)
+        {
+            <div class="list-group-item @(n.IsRead ? "" : "list-group-item-primary")">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                        <div class="fw-semibold">@(n.IsRead ? "" : "● ")@n.Title</div>
+                        <div class="pre-wrap">@n.Message</div>
+                        <div class="small text-muted">@UiText.Ago(n.CreatedAt) · @UiText.DateTimeText(n.CreatedAt)</div>
+                    </div>
+                    @if (!n.IsRead)
+                    {
+                        <form asp-action="MarkRead" asp-route-id="@n.Id" asp-route-unreadOnly="@Model.UnreadOnly" asp-route-page="@Model.Result.Page" method="post">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">Märgi loetuks</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <partial name="_Pagination" model="new PaginationModel(Model.Result.Page, Model.Result.TotalPages)" />
+}

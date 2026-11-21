@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Praktikaportaal.Core.DTOs;
 using Praktikaportaal.Core.Enums;
@@ -69,5 +70,54 @@ public class InternshipsController : Controller
             CanManage = isOwner || isAdmin,
             IsAdmin = isAdmin
         });
+    }
+
+    // ── applying (students) ─────────────────────────────────────────────────
+
+    [HttpGet]
+    [Authorize(Roles = nameof(UserRole.Student))]
+    public async Task<IActionResult> Apply(Guid id)
+    {
+        var model = await BuildApplyModelAsync(id, coverLetter: null);
+        return model.Internship is { } i && IsOpen(i) ? View(model) : NotOpen(id);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = nameof(UserRole.Student))]
+    public async Task<IActionResult> Apply(Guid id, ApplyViewModel form)
+    {
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                await _api.ApplyAsync(id, new CreateApplicationDto { CoverLetter = string.IsNullOrWhiteSpace(form.CoverLetter) ? null : form.CoverLetter.Trim() });
+                TempData["SuccessMessage"] = "Avaldus on esitatud! Staatust näed lehel \"Minu avaldused\".";
+                return RedirectToAction("Applications", "Student");
+            }
+            catch (ApiException ex) when (ex.IsUserError)
+            {
+                // 409: already applied; 400: deadline passed / not accepting applications
+                ModelState.AddApiError(ex);
+            }
+        }
+
+        return View(await BuildApplyModelAsync(id, form.CoverLetter));
+    }
+
+    private async Task<ApplyViewModel> BuildApplyModelAsync(Guid id, string? coverLetter) => new()
+    {
+        InternshipId = id,
+        CoverLetter = coverLetter,
+        Internship = await _api.GetInternshipAsync(id),
+        Cv = await _api.GetMyCvAsync()
+    };
+
+    private static bool IsOpen(InternshipDto i) =>
+        i.Status == InternshipStatus.Published && (!i.ApplicationDeadline.HasValue || i.ApplicationDeadline.Value >= DateTime.UtcNow);
+
+    private IActionResult NotOpen(Guid id)
+    {
+        TempData["ErrorMessage"] = "See praktikakoht ei võta avaldusi vastu (tähtaeg möödas või kuulutus suletud).";
+        return RedirectToAction(nameof(Details), new { id });
     }
 }
