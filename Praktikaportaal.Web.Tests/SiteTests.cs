@@ -15,6 +15,9 @@ public class SiteTests : IClassFixture<WebFactory>
     {
         _factory = factory;
         _factory.Api.Reset(); // xUnit creates a new instance per test; start each one with a clean mock (no setups, no calls)
+        // Logged-in pages ask for the unread notification count (navbar badge).
+        _factory.Api.Setup(a => a.GetNotificationsAsync(It.IsAny<NotificationQueryParameters>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new NotificationListDto());
     }
 
     // ── public pages ────────────────────────────────────────────────────────
@@ -250,7 +253,7 @@ public class SiteTests : IClassFixture<WebFactory>
         var response = await client.GetAsync($"/Internships/Details/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.StartsWith("/Account/Login", response.Headers.Location!.OriginalString);
+        Assert.StartsWith("/Account/Login", WebFactory.LocationOf(response));
         Assert.Contains(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("Praktikaportaal.Auth=;") || c.Contains("expires=Thu, 01 Jan 1970"));
     }
 
@@ -305,7 +308,7 @@ public class SiteTests : IClassFixture<WebFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await WebFactory.BodyAsync(response);
-        Assert.Contains("User with this email already exists.", html);
+        Assert.Contains("Selle e-posti aadressiga kasutaja on juba olemas", html);
         Assert.Contains("value=\"dup@student.ee\"", html); // the entered data is kept
     }
 
