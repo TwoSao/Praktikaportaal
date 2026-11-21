@@ -1,0 +1,75 @@
+@using Praktikaportaal.Web.Services
+@model ApplyViewModel
+@{
+    var i = Model.Internship!;
+    ViewData["Title"] = "Esita avaldus";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">Praktikakohad</a></li>
+        <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@i.Id">@i.Title</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Avaldus</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h1 class="h3 mb-1">Esita avaldus</h1>
+                <p class="text-muted mb-4">@i.Title · @i.CompanyName</p>
+
+                <form asp-action="Apply" asp-route-id="@Model.InternshipId" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="CoverLetter" class="form-label"></label>
+                        <textarea asp-for="CoverLetter" rows="8" class="form-control" maxlength="5000"
+                                  placeholder="Kirjuta lühidalt, miks see praktikakoht sind huvitab ja mida sa pakkuda oskad."></textarea>
+                        <div class="d-flex justify-content-between">
+                            <span asp-validation-for="CoverLetter" class="text-danger small"></span>
+                            <span class="form-text"><span id="coverLetterCount">0</span> / 5000</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="fw-semibold mb-1">Sinu CV</div>
+                        @if (Model.Cv is { } cv)
+                        {
+                            <div class="alert alert-success py-2 mb-0">
+                                ✔ CV on olemas: <strong>@cv.FileName</strong> (üles laaditud @UiText.Date(cv.UploadedAt)).
+                                Ettevõte näeb seda koos avaldusega.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning py-2 mb-0">
+                                CV puudub. Avalduse saad siiski esitada, aga CV-ga on sul paremad võimalused.
+                                <a asp-controller="Student" asp-action="Profile" asp-fragment="cv">Lisa CV profiilis</a>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Esita avaldus</button>
+                        <a asp-action="Details" asp-route-id="@i.Id" class="btn btn-outline-secondary">Tühista</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var box = document.getElementById('CoverLetter');
+            var counter = document.getElementById('coverLetterCount');
+            function update() { counter.textContent = box.value.length; }
+            box.addEventListener('input', update);
+            update();
+        })();
+    </script>
+}

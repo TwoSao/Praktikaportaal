@@ -1,0 +1,173 @@
+@using Praktikaportaal.Core.Enums
+@using Praktikaportaal.Web.Services
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "Minu profiil";
+}
+
+<h1 class="page-title h2 mb-4">Minu profiil</h1>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form asp-action="Profile" method="post" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 mb-3">Isikuandmed</h2>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" disabled />
+                            <div class="form-text">E-posti aadressi ei saa muuta.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SchoolName" class="form-label"></label>
+                            <input asp-for="SchoolName" class="form-control" />
+                            <span asp-validation-for="SchoolName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="StudyProgram" class="form-label"></label>
+                            <input asp-for="StudyProgram" class="form-control" />
+                            <span asp-validation-for="StudyProgram" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Course" class="form-label"></label>
+                            <input asp-for="Course" type="number" min="1" max="6" class="form-control" />
+                            <span asp-validation-for="Course" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" />
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" rows="4" class="form-control" placeholder="Kirjelda lühidalt, mida otsid ja mis sind huvitab."></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5">Oskused</h2>
+                    <p class="text-muted small">
+                        Märgi oskused, mis sul on, ja hinda oma taset. Nende põhjal soovitame sulle sobivaid praktikakohti.
+                        <span id="skillCount" class="fw-semibold"></span>
+                    </p>
+                    <div class="row row-cols-1 row-cols-md-2 g-2">
+                        @for (int k = 0; k < Model.Skills.Count; k++)
+                        {
+                            <div class="col">
+                                <div class="d-flex align-items-center gap-2 skill-row">
+                                    <input type="hidden" asp-for="Skills[k].SkillId" />
+                                    <input type="hidden" asp-for="Skills[k].Name" />
+                                    <div class="form-check flex-grow-1 mb-0">
+                                        <input class="form-check-input skill-check" type="checkbox" asp-for="Skills[k].Selected" />
+                                        <label class="form-check-label" for="Skills_@(k)__Selected">@Model.Skills[k].Name</label>
+                                    </div>
+                                    <select asp-for="Skills[k].Level" class="form-select form-select-sm skill-level" style="max-width: 9rem" aria-label="Tase: @Model.Skills[k].Name">
+                                        @foreach (var level in Enum.GetValues<SkillLevel>())
+                                        {
+                                            <option value="@level" selected="@(Model.Skills[k].Level == level)">@level.Label()</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg">Salvesta profiil</button>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0" id="cv">
+            <div class="card-body p-4">
+                <h2 class="h5">Minu CV</h2>
+                @if (Model.Cv is { } cv)
+                {
+                    <p class="mb-1"><strong>@cv.FileName</strong></p>
+                    <p class="text-muted small">Üles laaditud @UiText.DateTimeText(cv.UploadedAt)</p>
+                    <div class="d-flex gap-2 mb-3">
+                        <a class="btn btn-outline-primary btn-sm" asp-action="DownloadCv">Laadi alla</a>
+                        <form asp-action="DeleteCv" method="post">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" data-confirm="Kas kustutad CV?">Kustuta</button>
+                        </form>
+                    </div>
+                    <hr />
+                    <p class="small fw-semibold mb-2">Asenda CV uuega</p>
+                }
+                else
+                {
+                    <p class="text-muted small">CV-d pole veel üles laaditud. Ettevõte näeb CV-d koos sinu avaldusega.</p>
+                }
+
+                <form asp-action="UploadCv" method="post" enctype="multipart/form-data" id="cvForm">
+                    <input type="file" name="file" id="cvFile" class="form-control form-control-sm mb-2"
+                           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
+                    <div class="form-text mb-2">PDF või DOCX, kuni 5 MB.</div>
+                    <div id="cvError" class="text-danger small mb-2" role="alert"></div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Laadi üles</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            // Level picker only matters for ticked skills.
+            function refreshRow(row) {
+                var checked = row.querySelector('.skill-check').checked;
+                row.querySelector('.skill-level').disabled = !checked;
+            }
+            function refreshCount() {
+                var n = document.querySelectorAll('.skill-check:checked').length;
+                document.getElementById('skillCount').textContent = 'Valitud: ' + n;
+            }
+            document.querySelectorAll('.skill-row').forEach(function (row) {
+                refreshRow(row);
+                row.querySelector('.skill-check').addEventListener('change', function () { refreshRow(row); refreshCount(); });
+            });
+            refreshCount();
+
+            // CV: quick client-side check (the server and the API repeat it).
+            var form = document.getElementById('cvForm');
+            form.addEventListener('submit', function (e) {
+                var file = document.getElementById('cvFile').files[0];
+                var error = document.getElementById('cvError');
+                error.textContent = '';
+                if (!file) { return; }
+                if (!/\.(pdf|docx)$/i.test(file.name)) {
+                    error.textContent = 'Lubatud on ainult PDF ja DOCX failid.';
+                    e.preventDefault(); e.stopImmediatePropagation();
+                } else if (file.size > 5 * 1024 * 1024) {
+                    error.textContent = 'Fail on liiga suur (maksimaalselt 5 MB).';
+                    e.preventDefault(); e.stopImmediatePropagation();
+                }
+            }, true);
+        })();
+    </script>
+}

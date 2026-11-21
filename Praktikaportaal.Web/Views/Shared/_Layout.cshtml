@@ -20,7 +20,16 @@
                 <div class="collapse navbar-collapse" id="mainNavbar">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item"><a class="nav-link" asp-controller="Internships" asp-action="Index">Praktikakohad</a></li>
-                        @await RenderSectionAsync("NavItems", required: false)
+                        @if (User.IsInRole("Student"))
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="Student" asp-action="Recommendations">Soovitused</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Student" asp-action="Applications">Minu avaldused</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Student" asp-action="Profile">Profiil</a></li>
+                        }
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            @await Component.InvokeAsync("NotificationBadge")
+                        }
                     </ul>
 
                     <ul class="navbar-nav ms-auto align-items-lg-center">
