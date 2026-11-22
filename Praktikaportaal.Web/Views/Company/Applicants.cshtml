@@ -1,0 +1,120 @@
+@using Praktikaportaal.Core.Enums
+@using Praktikaportaal.Core.Services
+@using Praktikaportaal.Web.Services
+@model ApplicantsViewModel
+@{
+    var internship = Model.Internship;
+    ViewData["Title"] = "Avaldused: " + internship.Title;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">Töölaud</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@internship.Title</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h1 class="page-title h2 mb-0">Avaldused</h1>
+        <div class="text-muted">
+            <a asp-controller="Internships" asp-action="Details" asp-route-id="@internship.Id" class="text-decoration-none">@internship.Title</a> ·
+            kokku <span id="applicantsTotal">@Model.Result.TotalCount</span>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <span id="liveStatus" class="small text-muted" data-ws-path="/ws/applications">
+            <span class="live-dot"></span><span class="live-text">Ühendan…</span>
+        </span>
+        <form asp-action="Applicants" asp-route-id="@internship.Id" method="get" class="d-flex gap-2 align-items-center">
+            <label for="status" class="small text-muted mb-0">Staatus</label>
+            <select id="status" name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Kõik</option>
+                @foreach (var s in Enum.GetValues<ApplicationStatus>())
+                {
+                    <option value="@s" selected="@(Model.Status == s)">@s.Label()</option>
+                }
+            </select>
+            <noscript><button type="submit" class="btn btn-sm btn-outline-primary">Filtreeri</button></noscript>
+        </form>
+    </div>
+</div>
+
+<div id="applicantsList" data-internship-id="@internship.Id">
+    @if (Model.Result.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="big">📭</div>
+            <p>@(Model.Status.HasValue ? "Selle staatusega avaldusi ei ole." : "Sellele kuulutusele ei ole veel avaldusi esitatud.")</p>
+        </div>
+    }
+    else
+    {
+        <div class="vstack gap-3">
+            @foreach (var a in Model.Result.Items)
+            {
+                var next = ApplicationStatusRules.AllowedForCompany(a.Status);
+                <div class="card shadow-sm border-0" data-application-id="@a.Id">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between gap-2">
+                            <div>
+                                <h2 class="h5 mb-0">@a.StudentName</h2>
+                                <div class="small text-muted">
+                                    @a.SchoolName@(string.IsNullOrWhiteSpace(a.StudyProgram) ? "" : " · " + a.StudyProgram)@(a.Course > 0 ? $" · {a.Course}. kursus" : "")
+                                </div>
+                                <div class="small">
+                                    <a href="mailto:@a.StudentEmail">@a.StudentEmail</a>
+                                    @if (!string.IsNullOrWhiteSpace(a.StudentPhoneNumber)) { <text> · @a.StudentPhoneNumber</text> }
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge @a.Status.BadgeClass() fs-6">@a.Status.Label()</span>
+                                <div class="small text-muted mt-1">Esitatud @UiText.DateTimeText(a.AppliedAt)</div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(a.CoverLetter))
+                        {
+                            <details class="mt-3">
+                                <summary class="small fw-semibold">Kaaskiri</summary>
+                                <p class="pre-wrap mt-2 mb-0">@a.CoverLetter</p>
+                            </details>
+                        }
+
+                        <div class="d-flex flex-wrap gap-2 mt-3 table-actions">
+                            @if (a.HasCv && a.Status != ApplicationStatus.Withdrawn)
+                            {
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="DownloadCv" asp-route-id="@a.Id">📎 Laadi CV alla</a>
+                            }
+                            else if (!a.HasCv)
+                            {
+                                <span class="small text-muted align-self-center">CV puudub</span>
+                            }
+
+                            @foreach (var target in next)
+                            {
+                                <form asp-action="SetApplicationStatus" asp-route-id="@a.Id" method="post">
+                                    <input type="hidden" name="status" value="@target" />
+                                    <input type="hidden" name="internshipId" value="@internship.Id" />
+                                    <input type="hidden" name="filter" value="@Model.Status" />
+                                    <input type="hidden" name="page" value="@Model.Result.Page" />
+                                    <button type="submit" class="btn btn-sm @target.ActionButtonClass()"
+                                            data-confirm="@(target is ApplicationStatus.Accepted or ApplicationStatus.Rejected ? $"Kas oled kindel? Staatus „{target.Label()}“ on lõplik." : null)">
+                                        @target.ActionLabel()
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <partial name="_Pagination" model="new PaginationModel(Model.Result.Page, Model.Result.TotalPages)" />
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/live-applications.js" asp-append-version="true"></script>
+    <script src="~/js/company-applicants.js" asp-append-version="true"></script>
+}
