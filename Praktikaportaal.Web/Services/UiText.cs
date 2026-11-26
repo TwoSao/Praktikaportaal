@@ -19,13 +19,13 @@ public static class UiText
 
     public static string BadgeClass(this ApplicationStatus status) => status switch
     {
-        ApplicationStatus.Submitted => "bg-secondary",
-        ApplicationStatus.Viewed => "bg-info text-dark",
-        ApplicationStatus.Interview => "bg-warning text-dark",
-        ApplicationStatus.Accepted => "bg-success",
-        ApplicationStatus.Rejected => "bg-danger",
-        ApplicationStatus.Withdrawn => "bg-light text-muted border",
-        _ => "bg-secondary"
+        ApplicationStatus.Submitted => "pp-badge pp-gray",
+        ApplicationStatus.Viewed => "pp-badge pp-rose",
+        ApplicationStatus.Interview => "pp-badge pp-gold",
+        ApplicationStatus.Accepted => "pp-badge pp-green",
+        ApplicationStatus.Rejected => "pp-badge pp-red",
+        ApplicationStatus.Withdrawn => "pp-badge pp-gray",
+        _ => "pp-badge pp-gray"
     };
 
     /// <summary>Text of the button that moves an application to <paramref name="status"/>.</summary>
@@ -57,11 +57,11 @@ public static class UiText
 
     public static string BadgeClass(this InternshipStatus status) => status switch
     {
-        InternshipStatus.Published => "bg-success",
-        InternshipStatus.Draft => "bg-secondary",
-        InternshipStatus.Closed => "bg-warning text-dark",
-        InternshipStatus.Archived => "bg-dark",
-        _ => "bg-secondary"
+        InternshipStatus.Published => "pp-badge pp-green",
+        InternshipStatus.Draft => "pp-badge pp-gray",
+        InternshipStatus.Closed => "pp-badge pp-gold",
+        InternshipStatus.Archived => "pp-badge pp-gray",
+        _ => "pp-badge pp-gray"
     };
 
     public static string Label(this SkillLevel level) => level switch

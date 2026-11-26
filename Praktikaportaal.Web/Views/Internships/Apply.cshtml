@@ -15,7 +15,7 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <div class="card-body p-4">
                 <h1 class="h3 mb-1">Esita avaldus</h1>
                 <p class="text-muted mb-4">@i.Title · @i.CompanyName</p>
@@ -38,7 +38,7 @@
                         @if (Model.Cv is { } cv)
                         {
                             <div class="alert alert-success py-2 mb-0">
-                                ✔ CV on olemas: <strong>@cv.FileName</strong> (üles laaditud @UiText.Date(cv.UploadedAt)).
+                                CV on olemas: <strong>@cv.FileName</strong> (üles laaditud @UiText.Date(cv.UploadedAt)).
                                 Ettevõte näeb seda koos avaldusega.
                             </div>
                         }

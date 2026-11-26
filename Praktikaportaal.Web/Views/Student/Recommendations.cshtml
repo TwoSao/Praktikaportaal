@@ -32,7 +32,6 @@
 else if (Model.Result.Items.Count == 0)
 {
     <div class="empty-state">
-        <div class="big">🎯</div>
         <p>@(Model.MinOverlap > 1 ? "Selle sobivusega kohti ei leitud. Proovi madalamat piiri." : "Praegu ei ole sinu oskustele sobivaid avatud kohti.")</p>
         <a class="btn btn-outline-primary" asp-controller="Internships" asp-action="Index">Vaata kõiki praktikakohti</a>
     </div>
@@ -44,7 +43,7 @@ else
         @foreach (var r in Model.Result.Items)
         {
             var i = r.Internship;
-            <div class="card shadow-sm border-0">
+            <div class="card">
                 <div class="card-body">
                     <div class="row g-3 align-items-center">
                         <div class="col-md-8">
@@ -55,7 +54,7 @@ else
                                 @i.CompanyName@(string.IsNullOrWhiteSpace(i.Location) ? "" : " · " + i.Location) · tähtaeg @UiText.Date(i.ApplicationDeadline)
                             </div>
                             <div>
-                                @foreach (var skill in r.MatchedSkills) { <span class="skill-chip matched" title="Sul on see oskus">✔ @skill</span> }
+                                @foreach (var skill in r.MatchedSkills) { <span class="skill-chip matched" title="Sul on see oskus">@skill</span> }
                                 @foreach (var skill in r.MissingSkills) { <span class="skill-chip missing" title="Seda oskust sul veel ei ole">@skill</span> }
                             </div>
                         </div>

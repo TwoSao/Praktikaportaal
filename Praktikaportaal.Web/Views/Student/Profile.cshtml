@@ -12,7 +12,7 @@
         <form asp-action="Profile" method="post" novalidate>
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card mb-4">
                 <div class="card-body p-4">
                     <h2 class="h5 mb-3">Isikuandmed</h2>
                     <div class="row g-3">
@@ -65,7 +65,7 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 mb-4">
+            <div class="card mb-4">
                 <div class="card-body p-4">
                     <h2 class="h5">Oskused</h2>
                     <p class="text-muted small">
@@ -101,7 +101,7 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card shadow-sm border-0" id="cv">
+        <div class="card" id="cv">
             <div class="card-body p-4">
                 <h2 class="h5">Minu CV</h2>
                 @if (Model.Cv is { } cv)

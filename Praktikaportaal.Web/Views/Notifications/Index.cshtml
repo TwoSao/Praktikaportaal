@@ -30,19 +30,18 @@
 @if (Model.Result.Items.Count == 0)
 {
     <div class="empty-state">
-        <div class="big">🔔</div>
         <p>@(Model.UnreadOnly ? "Lugemata teateid ei ole." : "Sul ei ole veel ühtegi teadet.")</p>
     </div>
 }
 else
 {
-    <div class="list-group shadow-sm">
+    <div class="list-group">
         @foreach (var n in Model.Result.Items)
         {
             <div class="list-group-item @(n.IsRead ? "" : "list-group-item-primary")">
                 <div class="d-flex justify-content-between align-items-start gap-3">
                     <div>
-                        <div class="fw-semibold">@(n.IsRead ? "" : "● ")@n.Title</div>
+                        <div class="fw-semibold">@if (!n.IsRead) { <span class="unread-dot" role="img" aria-label="Lugemata"></span> }@n.Title</div>
                         <div class="pre-wrap">@n.Message</div>
                         <div class="small text-muted">@UiText.Ago(n.CreatedAt) · @UiText.DateTimeText(n.CreatedAt)</div>
                     </div>

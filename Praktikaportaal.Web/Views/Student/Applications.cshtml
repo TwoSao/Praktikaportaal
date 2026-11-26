@@ -24,7 +24,6 @@
 @if (Model.Result.Items.Count == 0)
 {
     <div class="empty-state">
-        <div class="big">📄</div>
         <p>@(Model.Status.HasValue ? "Selle staatusega avaldusi ei ole." : "Sa ei ole veel ühtegi avaldust esitanud.")</p>
         <a class="btn btn-primary" asp-controller="Internships" asp-action="Index">Vaata praktikakohti</a>
         <a class="btn btn-outline-primary" asp-action="Recommendations">Soovitused sulle</a>
@@ -32,10 +31,10 @@
 }
 else
 {
-    <div class="card shadow-sm border-0">
+    <div class="card">
         <div class="table-responsive">
             <table class="table align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-pp">
                     <tr><th>Praktikakoht</th><th>Esitatud</th><th>Staatus</th><th class="text-end"></th></tr>
                 </thead>
                 <tbody>

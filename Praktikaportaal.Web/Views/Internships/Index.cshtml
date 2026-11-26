@@ -8,7 +8,7 @@
 
 <h1 class="page-title h2 mb-3">Praktikakohad</h1>
 
-<form asp-action="Index" method="get" class="card card-body shadow-sm border-0 mb-4">
+<form asp-action="Index" method="get" class="card card-body mb-4">
     <div class="row g-3 align-items-end">
         <div class="col-lg-4">
             <label for="search" class="form-label small mb-1">Otsing</label>
@@ -44,7 +44,7 @@
             <button type="submit" class="btn btn-primary flex-grow-1">Otsi</button>
             @if (Model.HasActiveFilter || q.Sort != InternshipSort.Newest)
             {
-                <a asp-action="Index" class="btn btn-outline-secondary" title="Tühjenda filtrid">✕</a>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Tühjenda filtrid"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></a>
             }
         </div>
         <div class="col-12">
@@ -70,7 +70,6 @@
 @if (Model.Result.Items.Count == 0)
 {
     <div class="empty-state">
-        <div class="big">🔎</div>
         <p>@(Model.HasActiveFilter ? "Proovi otsingut laiendada või filtreid eemaldada." : "Praegu ei ole ühtegi avatud praktikakohta.")</p>
         @if (Model.HasActiveFilter) { <a asp-action="Index" class="btn btn-outline-primary">Näita kõiki</a> }
     </div>

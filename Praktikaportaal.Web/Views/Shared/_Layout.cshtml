@@ -10,9 +10,12 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <nav class="navbar navbar-expand-lg navbar-pp">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">🎓 Praktikaportaal</a>
+                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+                    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="6" fill="#6E1B2B"/><path d="M8 22 L17 11 L26 22" fill="none" stroke="#D9A82B" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="25" r="2" fill="#F8F4EF"/></svg>
+                    Praktikaportaal
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
                         aria-controls="mainNavbar" aria-expanded="false" aria-label="Ava menüü">
                     <span class="navbar-toggler-icon"></span>
@@ -29,7 +32,7 @@
                         @if (User.IsInRole("Company"))
                         {
                             <li class="nav-item"><a class="nav-link" asp-controller="Company" asp-action="Index">Töölaud</a></li>
-                            <li class="nav-item"><a class="nav-link text-warning fw-semibold" asp-controller="Company" asp-action="Create">+ Lisa kuulutus</a></li>
+                            <li class="nav-item"><a class="nav-link fw-bold" style="color:var(--pp-primary)" asp-controller="Company" asp-action="Create">+ Lisa kuulutus</a></li>
                         }
                         @if (User.IsInRole("Admin"))
                         {
@@ -44,20 +47,20 @@
                     <ul class="navbar-nav ms-auto align-items-lg-center">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item me-lg-3 text-light small">
+                            <li class="nav-item me-lg-3 small">
                                 <span class="badge bg-primary badge-role me-1">@RoleLabel(User.FindFirstValue(ClaimTypes.Role))</span>
                                 <span>@User.Identity.Name</span>
                             </li>
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-light btn-sm">Logi välja</button>
+                                    <button type="submit" class="btn btn-outline-dark btn-sm">Logi välja</button>
                                 </form>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item me-2">
-                                <a class="btn btn-outline-light btn-sm" asp-controller="Account" asp-action="Login">Logi sisse</a>
+                                <a class="btn btn-outline-dark btn-sm" asp-controller="Account" asp-action="Login">Logi sisse</a>
                             </li>
                             <li class="nav-item dropdown">
                                 <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="registerDropdown"
@@ -98,7 +101,7 @@
     @* Toasts (live notifications etc.) are added here by scripts *@
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
-    <footer class="border-top py-3 text-muted bg-light mt-auto">
+    <footer class="site-footer border-top py-3 text-muted mt-auto">
         <div class="container text-center">
             <small>&copy; 2026 Praktikaportaal — Programmeerimine ja hajusrakendused (koolitöö)</small>
         </div>

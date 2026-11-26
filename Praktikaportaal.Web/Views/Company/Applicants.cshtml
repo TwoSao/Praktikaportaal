@@ -44,7 +44,6 @@
     @if (Model.Result.Items.Count == 0)
     {
         <div class="empty-state">
-            <div class="big">📭</div>
             <p>@(Model.Status.HasValue ? "Selle staatusega avaldusi ei ole." : "Sellele kuulutusele ei ole veel avaldusi esitatud.")</p>
         </div>
     }
@@ -54,7 +53,7 @@
             @foreach (var a in Model.Result.Items)
             {
                 var next = ApplicationStatusRules.AllowedForCompany(a.Status);
-                <div class="card shadow-sm border-0" data-application-id="@a.Id">
+                <div class="card" data-application-id="@a.Id">
                     <div class="card-body">
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div>
@@ -84,7 +83,7 @@
                         <div class="d-flex flex-wrap gap-2 mt-3 table-actions">
                             @if (a.HasCv && a.Status != ApplicationStatus.Withdrawn)
                             {
-                                <a class="btn btn-sm btn-outline-secondary" asp-action="DownloadCv" asp-route-id="@a.Id">📎 Laadi CV alla</a>
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="DownloadCv" asp-route-id="@a.Id">Laadi CV alla</a>
                             }
                             else if (!a.HasCv)
                             {

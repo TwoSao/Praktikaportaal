@@ -16,7 +16,7 @@
 
 <div class="row g-4">
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <div class="card-body p-4">
                 <div class="mb-2">
                     <span class="badge bg-primary-subtle text-primary-emphasis">@i.Field</span>
@@ -49,7 +49,7 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card shadow-sm border-0 mb-3">
+        <div class="card mb-3">
             <div class="card-body">
                 <dl class="row small mb-0">
                     <dt class="col-5">Tähtaeg</dt><dd class="col-7">@UiText.Date(i.ApplicationDeadline)</dd>
@@ -61,7 +61,7 @@
             </div>
         </div>
 
-        <div class="card shadow-sm border-0">
+        <div class="card">
             <div class="card-body">
                 @if (Model.ExistingApplication is { } existing)
                 {
@@ -92,7 +92,7 @@
 
         @if (Model.CanManage)
         {
-            <div class="card shadow-sm border-0 mt-3">
+            <div class="card mt-3">
                 <div class="card-body">
                     <h2 class="h6">@(Model.IsAdmin ? "Modereerimine" : "Halda kuulutust")</h2>
                     @if (!Model.IsAdmin)

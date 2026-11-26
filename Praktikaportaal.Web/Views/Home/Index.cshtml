@@ -3,7 +3,7 @@
     ViewData["Title"] = "Avaleht";
 }
 
-<section class="hero-banner p-4 p-md-5 mb-5 shadow">
+<section class="hero-banner p-4 p-md-5 mb-5">
     <h1 class="display-6 fw-bold">Leia oma järgmine praktikakoht</h1>
     <p class="lead mb-4">Praktikaportaal ühendab õppurid ja ettevõtted: sirvi kuulutusi, esita avaldus ja jälgi selle staatust.</p>
 
@@ -47,7 +47,7 @@ else
 
     @if (Model.Latest.Count == 0)
     {
-        <div class="empty-state"><div class="big">📭</div><p>Praegu ei ole ühtegi avatud praktikakohta.</p></div>
+        <div class="empty-state"><p>Praegu ei ole ühtegi avatud praktikakohta.</p></div>
     }
     else
     {
@@ -64,20 +64,20 @@ else
 {
     <section class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <h3 class="h5">Õppurile</h3>
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <h3 class="h4">Õppurile</h3>
                     <p class="text-muted">Loo profiil, lisa oskused ja CV ning saad soovitusi sinu oskustele sobivate kohtade kohta.</p>
                     <a class="btn btn-primary" asp-controller="Account" asp-action="RegisterStudent">Registreeru õppurina</a>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <h3 class="h5">Ettevõttele</h3>
-                    <p class="text-muted">Avalda praktikakohti, saa avaldused reaalajas ja juhi kandidaate intervjuust vastuvõtuni.</p>
-                    <a class="btn btn-outline-primary" asp-controller="Account" asp-action="RegisterCompany">Registreeru ettevõttena</a>
+            <div class="card h-100" style="background:var(--pp-ink);border-color:var(--pp-ink)">
+                <div class="card-body p-4">
+                    <h3 class="h4" style="color:#fff">Ettevõttele</h3>
+                    <p style="color:#EBD6D4">Avalda praktikakohti, saa avaldused reaalajas ja juhi kandidaate intervjuust vastuvõtuni.</p>
+                    <a class="btn btn-warning" asp-controller="Account" asp-action="RegisterCompany">Registreeru ettevõttena</a>
                 </div>
             </div>
         </div>
